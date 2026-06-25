@@ -317,6 +317,10 @@
     .refresh-dot.error { background: var(--red); }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+    /* Card chart icon btn */
+    .card-chart-btn { background:transparent; border:none; cursor:pointer; font-size:.85rem; padding:.15rem .25rem; border-radius:4px; color:var(--text-muted); line-height:1; flex-shrink:0; }
+    .card-chart-btn:hover { color:var(--accent); background:rgba(99,102,241,.12); }
+
     /* Empty slot */
     .slot-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
     .slot-empty p { margin-top: .5rem; font-size: .75rem; }
@@ -955,6 +959,7 @@ function createCard(slotIdx) {
         '<div style="display:flex;align-items:center;gap:.4rem">'+
           '<div class="card-ticker">'+stock.t+'</div>'+
           '<div class="card-sector" style="font-size:.6rem">'+stock.s+'</div>'+
+          '<button class="card-chart-btn" onclick="bukaChart(\''+slot.ticker+'\',\''+stock.n.replace(/'/g,'')+'\''+')" title="Lihat Chart">&#x1F4C8;</button>'+
         '</div>'+
         '<div class="card-name">'+stock.n+'</div>'+
       '</div>'+
@@ -985,8 +990,7 @@ function createCard(slotIdx) {
     '<div class="verdict wait" id="verdict-'+slotIdx+'"><span>Menunggu harga & level</span><span class="verdict-info">'+slot.lot+' lot</span></div>'+
     // Analysis
     '<div class="card-analysis" id="analysis-'+slotIdx+'"><div class="analysis-empty">Isi level entry/SL/TP dan pastikan harga tersedia.</div></div>'+
-    // Chart button
-    '<button class="btn btn-ghost" style="width:100%;margin-top:.5rem;font-size:.75rem;padding:.35rem;border:1px solid var(--border)" onclick="bukaChart(\''+slot.ticker+'\',\''+stock.n+'\')">&#x1F4CA; Lihat Chart</button>';
+    '';
 
   // Recalc jika data cukup
   recalcCard(slotIdx);
