@@ -62,6 +62,44 @@
     @keyframes wlFlashUp   { 0%,100%{background:transparent} 50%{background:rgba(34,197,94,.12)} }
     @keyframes wlFlashDown { 0%,100%{background:transparent} 50%{background:rgba(239,68,68,.12)} }
 
+    /* Screener */
+    .screener-section { max-width:1100px; margin:.5rem auto 0; padding:0 1.25rem 1.5rem; }
+    .screener-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:.55rem .75rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; user-select:none; }
+    .screener-toggle:hover { background:var(--surface2); }
+    .screener-body { display:none; margin-top:.6rem; }
+    .screener-body.open { display:block; }
+    .screener-toolbar { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
+    .scr-filter-btn { font-size:.72rem; padding:.3rem .65rem; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600; transition:all .15s; }
+    .scr-filter-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .scr-filter-btn.active { background:rgba(99,102,241,.15); border-color:var(--accent); color:var(--accent); font-weight:800; }
+    .scr-filter-btn.gainer { border-color:var(--green); color:var(--green); }
+    .scr-filter-btn.gainer.active { background:rgba(34,197,94,.12); }
+    .scr-filter-btn.loser  { border-color:var(--red); color:var(--red); }
+    .scr-filter-btn.loser.active  { background:rgba(239,68,68,.12); }
+    .scr-sector-select { font-size:.72rem; padding:.3rem .6rem; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; outline:none; }
+    .scr-refresh-btn { margin-left:auto; font-size:.7rem; }
+    .screener-table { width:100%; border-collapse:collapse; font-size:.76rem; }
+    .screener-table th { color:var(--text-muted); font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:.4rem .6rem; border-bottom:1px solid var(--border); cursor:pointer; white-space:nowrap; user-select:none; }
+    .screener-table th:hover { color:var(--text); }
+    .screener-table th.sorted { color:var(--accent); }
+    .screener-table td { padding:.45rem .6rem; border-bottom:1px solid rgba(42,45,62,.5); vertical-align:middle; }
+    .screener-table tr:hover td { background:rgba(255,255,255,.02); }
+    .scr-ticker { font-weight:800; color:var(--accent); }
+    .scr-name   { color:var(--text-muted); font-size:.68rem; }
+    .scr-price  { font-weight:700; font-variant-numeric:tabular-nums; }
+    .scr-pct    { font-weight:700; font-size:.73rem; }
+    .scr-pct.up   { color:var(--green); } .scr-pct.down { color:var(--red); } .scr-pct.flat { color:var(--text-muted); }
+    .scr-vol    { color:var(--text-muted); font-size:.68rem; font-variant-numeric:tabular-nums; }
+    .scr-sector { font-size:.65rem; color:var(--text-muted); }
+    .scr-action { display:flex; gap:.3rem; }
+    .scr-btn    { background:transparent; border:1px solid var(--border); border-radius:5px; font-size:.68rem; padding:.2rem .45rem; cursor:pointer; color:var(--text-muted); white-space:nowrap; }
+    .scr-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(99,102,241,.08); }
+    .scr-btn.wl  { border-color:var(--green); color:var(--green); }
+    .scr-btn.wl:hover { background:rgba(34,197,94,.08); }
+    .scr-loading { text-align:center; color:var(--text-muted); padding:1.5rem 0; font-size:.78rem; }
+    .sort-arrow { font-size:.6rem; margin-left:.2rem; opacity:.5; }
+    .sort-arrow.active { opacity:1; color:var(--accent); }
+
     /* Riwayat Analisis */
     .history-section { max-width:1100px; margin:.5rem auto 0; padding:0 1.25rem 1.5rem; }
     .history-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:.55rem .75rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; user-select:none; }
@@ -408,6 +446,26 @@
   </div>
   <div id="watchlistBody">
     <div class="watchlist-empty">Belum ada saham di watchlist. Ketik nama atau ticker di kolom pencarian.</div>
+  </div>
+</section>
+
+<!-- Screener -->
+<section class="screener-section" id="screenerSection">
+  <div class="screener-toggle" onclick="toggleScreener()" id="screenerToggle">
+    <div style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:800">&#x1F50E; Screener Saham IDX</div>
+    <span class="history-toggle-arrow" id="screenerArrow">&#x25BC;</span>
+  </div>
+  <div class="screener-body" id="screenerBody">
+    <div class="screener-toolbar">
+      <button class="scr-filter-btn active" id="scrAll"     onclick="setScrFilter('all')">Semua</button>
+      <button class="scr-filter-btn gainer" id="scrGainer"  onclick="setScrFilter('gainer')">&#x25B2; Top Gainers</button>
+      <button class="scr-filter-btn loser"  id="scrLoser"   onclick="setScrFilter('loser')">&#x25BC; Top Losers</button>
+      <select class="scr-sector-select" id="scrSector" onchange="setScrFilter('sector')">
+        <option value="">Semua Sektor</option>
+      </select>
+      <button class="btn btn-ghost scr-refresh-btn" onclick="loadScreener(true)">&#x21BB; Refresh</button>
+    </div>
+    <div id="screenerTable"><div class="scr-loading">&#x23F3; Klik untuk memuat data screener...</div></div>
   </div>
 </section>
 
@@ -1435,6 +1493,173 @@ function checkNotifications() {
 }
 
 // ============================================================
+// SCREENER
+// ============================================================
+var SCREENER_TICKERS = [
+  'BBCA','BBRI','BMRI','BBNI','BRIS','BBTN','MEGA','ARTO','BNGA','BDMN',
+  'TLKM','ISAT','EXCL','TBIG','TOWR','MTEL',
+  'ASII','AUTO','SMSM','IMAS',
+  'PGAS','MEDC','ELSA','BREN','PGEO','ESSA','AKRA',
+  'PTBA','ADRO','ITMG','HRUM','BYAN','DSSA','GEMS','TOBA',
+  'ANTM','INCO','TINS','MDKA','AMMN','NCKL','CUAN',
+  'BSDE','CTRA','SMRA','PWON','LPKR','ASRI','DMAS','KIJA',
+  'UNVR','ICBP','INDF','MYOR','CPIN','JPFA','HMSP','GGRM','ULTJ','ROTI','DLTA',
+  'KLBF','SIDO','KAEF','MIKA','HEAL','TSPC','DVLA',
+  'JSMR','WSKT','ADHI','WIKA','PTPP','WTON',
+  'GOTO','BUKA','EMTK','SCMA','MNCN','DCII','MTDL',
+  'SMGR','INTP','SMBR','TOTO','ARNA',
+  'BRPT','TPIA','INKP','TKIM','FASW',
+  'AALI','LSIP','SSMS','SIMP','SGRO',
+  'MAPI','ACES','AMRT','ERAA','LPPF',
+  'ADMF','BFIN','SRTG','BIRD','SMDR'
+];
+
+var screenerCache  = { data: [], ts: 0 };
+var screenerSort   = { col: 'changePct', dir: 'desc' };
+var screenerFilter = 'all';
+var screenerSector = '';
+var screenerOpen   = false;
+var SCREENER_TTL   = 60000;
+
+async function toggleScreener() {
+  var body  = document.getElementById('screenerBody');
+  var arrow = document.getElementById('screenerArrow');
+  screenerOpen = !screenerOpen;
+  body.classList.toggle('open', screenerOpen);
+  if (arrow) arrow.classList.toggle('open', screenerOpen);
+  if (screenerOpen && !screenerCache.data.length) loadScreener(false);
+}
+
+async function loadScreener(force) {
+  if (!screenerOpen) return;
+  if (!force && screenerCache.data.length && Date.now() - screenerCache.ts < SCREENER_TTL) {
+    renderScreener(); return;
+  }
+  document.getElementById('screenerTable').innerHTML = '<div class="scr-loading">&#x23F3; Memuat data ' + SCREENER_TICKERS.length + ' saham...</div>';
+
+  var results = {};
+  var batch = 20;
+  for (var i = 0; i < SCREENER_TICKERS.length; i += batch) {
+    var chunk = SCREENER_TICKERS.slice(i, i + batch);
+    try {
+      var res  = await fetch('/api/prices?tickers=' + chunk.join(','));
+      var json = await res.json();
+      if (json.prices) Object.assign(results, json.prices);
+    } catch(e) { console.warn('screener fetch err:', e.message); }
+  }
+
+  screenerCache.data = SCREENER_TICKERS.map(function(t) {
+    var p = results[t] || {};
+    var stock = getStock(t);
+    return { ticker: t, name: stock.n, sector: stock.s,
+      price: p.last || 0, change: p.change || 0, changePct: p.changePct || 0,
+      volume: p.volume || 0, high: p.high || 0, low: p.low || 0,
+      error: !!p.error };
+  }).filter(function(d){ return !d.error && d.price > 0; });
+
+  screenerCache.ts = Date.now();
+  populateSectorFilter();
+  renderScreener();
+}
+
+function populateSectorFilter() {
+  var sel = document.getElementById('scrSector');
+  if (!sel) return;
+  var sectors = [];
+  screenerCache.data.forEach(function(d){ if (d.sector && d.sector !== '—' && sectors.indexOf(d.sector) === -1) sectors.push(d.sector); });
+  sectors.sort();
+  sel.innerHTML = '<option value="">Semua Sektor</option>' +
+    sectors.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+  sel.value = screenerSector;
+}
+
+function setScrFilter(type) {
+  if (type === 'sector') {
+    screenerFilter = 'sector';
+    screenerSector = document.getElementById('scrSector').value;
+  } else {
+    screenerFilter = type;
+    screenerSector = '';
+    document.getElementById('scrSector').value = '';
+  }
+  ['All','Gainer','Loser'].forEach(function(k){
+    var el = document.getElementById('scr'+k);
+    if (el) el.classList.toggle('active', k.toLowerCase() === type);
+  });
+  renderScreener();
+}
+
+function sortScreener(col) {
+  if (screenerSort.col === col) screenerSort.dir = screenerSort.dir === 'asc' ? 'desc' : 'asc';
+  else { screenerSort.col = col; screenerSort.dir = col === 'ticker' ? 'asc' : 'desc'; }
+  renderScreener();
+}
+
+function renderScreener() {
+  var data = screenerCache.data.slice();
+
+  // Filter
+  if (screenerFilter === 'gainer') data = data.filter(function(d){ return d.changePct > 0; });
+  else if (screenerFilter === 'loser')  data = data.filter(function(d){ return d.changePct < 0; });
+  else if (screenerFilter === 'sector') data = data.filter(function(d){ return d.sector === screenerSector; });
+
+  // Sort
+  var col = screenerSort.col, dir = screenerSort.dir;
+  data.sort(function(a,b){
+    var av = a[col], bv = b[col];
+    if (typeof av === 'string') av = av.toLowerCase(), bv = bv.toLowerCase();
+    return dir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  if (!data.length) {
+    document.getElementById('screenerTable').innerHTML = '<div class="scr-loading">Tidak ada data untuk filter ini.</div>';
+    return;
+  }
+
+  function th(label, col2) {
+    var isActive = screenerSort.col === col2;
+    var arrow = isActive ? (screenerSort.dir === 'asc' ? '▲' : '▼') : '▲';
+    return '<th class="'+(isActive?'sorted':'')+'" onclick="sortScreener(\''+col2+'\')">'+label+
+      '<span class="sort-arrow'+(isActive?' active':'')+'">'+arrow+'</span></th>';
+  }
+
+  var fmtVol = function(v){ return v>=1e9?(v/1e9).toFixed(1)+'M': v>=1e6?(v/1e6).toFixed(0)+'jt': v>=1e3?(v/1e3).toFixed(0)+'rb':String(v); };
+
+  var rows = data.map(function(d) {
+    var dir2 = d.changePct > 0 ? 'up' : d.changePct < 0 ? 'down' : 'flat';
+    var sign = d.changePct > 0 ? '+' : '';
+    var arrow2 = d.changePct > 0 ? '▲' : d.changePct < 0 ? '▼' : '▬';
+    var slot0 = slots.findIndex(function(s){ return !s.ticker; });
+    var addCardBtn = slot0 !== -1
+      ? '<button class="scr-btn" onclick="selectStock('+slot0+',\''+d.ticker+'\')" title="Tambah ke Card">+ Card</button>'
+      : '';
+    return '<tr>'+
+      '<td><div class="scr-ticker">'+d.ticker+'</div><div class="scr-name">'+d.name+'</div></td>'+
+      '<td class="scr-price">'+d.price.toLocaleString('id-ID')+'</td>'+
+      '<td><span class="scr-pct '+dir2+'">'+arrow2+' '+sign+d.changePct.toFixed(2)+'%</span>'+
+        '<div style="font-size:.62rem;color:var(--text-muted)">'+(d.change>=0?'+':'')+d.change.toLocaleString('id-ID')+'</div></td>'+
+      '<td class="scr-vol">'+fmtVol(d.volume)+'</td>'+
+      '<td class="scr-sector">'+d.sector+'</td>'+
+      '<td><div class="scr-action">'+
+        '<button class="scr-btn wl" onclick="wlAdd(\''+d.ticker+'\')" title="Tambah Watchlist">+ WL</button>'+
+        addCardBtn+
+        '<button class="scr-btn" onclick="bukaChart(\''+d.ticker+'\',\''+d.name.replace(/'/g,'')+'\')" title="Chart">&#x1F4C8;</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+
+  document.getElementById('screenerTable').innerHTML =
+    '<table class="screener-table">'+
+      '<thead><tr>'+
+        th('Saham','ticker')+th('Harga','price')+th('% Ubah','changePct')+
+        th('Volume','volume')+th('Sektor','sector')+'<th></th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>'+
+    '<div style="font-size:.62rem;color:var(--text-muted);text-align:right;margin-top:.4rem">'+data.length+' saham · Cache '+Math.round((Date.now()-screenerCache.ts)/1000)+'d lalu</div>';
+}
+
+// ============================================================
 // RIWAYAT ANALISIS
 // ============================================================
 var HIST_KEY  = 'kenz_history';
@@ -1780,6 +2005,7 @@ async function logout(){
     fetchCrypto();
     document.getElementById('watchlistSection').style.display='none';
     document.getElementById('historySection').style.display='none';
+    document.getElementById('screenerSection').style.display='none';
     document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
     return;
   }
@@ -1812,6 +2038,7 @@ async function logout(){
   wlInitSearch();
   updateNotifBtn();
   renderHistory();
+  populateSectorFilter();
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
 </script>
