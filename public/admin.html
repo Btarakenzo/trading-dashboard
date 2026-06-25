@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | KenzProject</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-wrap { max-width: 860px; margin: 0 auto; padding: 1.5rem; }
+    .page-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: .6rem; }
+    .role-badge { font-size: .65rem; font-weight: 800; padding: .2rem .55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .badge-admin { background: rgba(234,179,8,.15); color: #fbbf24; border: 1px solid rgba(234,179,8,.3); }
+    .badge-dev   { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.3); }
+    .badge-user  { background: rgba(34,197,94,.12);  color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel-title { font-size: .8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th { text-align: left; font-size: .68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; padding: .5rem .75rem; border-bottom: 1px solid var(--border); }
+    td { padding: .6rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .btn-sm { font-size: .72rem; padding: .3rem .65rem; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; transition: background .15s; }
+    .btn-edit { background: rgba(99,102,241,.15); color: #818cf8; }
+    .btn-edit:hover { background: rgba(99,102,241,.3); }
+    .btn-del { background: rgba(239,68,68,.12); color: var(--red); }
+    .btn-del:hover { background: rgba(239,68,68,.25); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    @media (max-width:600px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-field { display: flex; flex-direction: column; gap: .3rem; }
+    .form-field label { font-size: .7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .form-field input, .form-field select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); padding: .5rem .7rem; font-size: .85rem; outline: none; width: 100%;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+    .form-field select option { background: var(--surface2); }
+    .btn-primary { background: var(--accent); color: #fff; border: none; padding: .55rem 1.2rem; border-radius: 6px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: .65rem 1.1rem; border-radius: 8px; font-size: .8rem; font-weight: 700; display: none; z-index: 999; }
+    .toast.ok  { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); display: block; }
+    .toast.err { background: rgba(239,68,68,.15); color: var(--red);   border: 1px solid rgba(239,68,68,.3);  display: block; }
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:500; align-items:center; justify-content:center; padding:1rem; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; max-width:440px; width:100%; }
+    .modal-title { font-size:.9rem; font-weight:800; margin-bottom:1.25rem; }
+    .modal-actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1.25rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <span class="logo">📈 KenzProject</span>
+  </div>
+  <div class="header-right">
+    <span id="userInfo" style="font-size:.78rem;color:var(--text-muted)"></span>
+    <a href="/" class="btn btn-ghost" style="font-size:.78rem">Dashboard</a>
+    <button class="btn btn-ghost" style="font-size:.78rem" onclick="logout()">Keluar</button>
+  </div>
+</header>
+
+<div class="admin-wrap">
+  <div class="page-title">👥 Manajemen User</div>
+
+  <!-- Tambah user -->
+  <div class="panel">
+    <div class="panel-title">Tambah User Baru</div>
+    <div class="form-grid">
+      <div class="form-field"><label>Username</label><input type="text" id="newUsername" placeholder="username"></div>
+      <div class="form-field"><label>Nama Lengkap</label><input type="text" id="newName" placeholder="Nama"></div>
+      <div class="form-field"><label>Password</label><input type="password" id="newPassword" placeholder="Min. 6 karakter"></div>
+      <div class="form-field">
+        <label>Role</label>
+        <select id="newRole">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="developer">Developer</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:.9rem"><button class="btn-primary" onclick="tambahUser()">+ Tambah User</button></div>
+  </div>
+
+  <!-- Daftar user -->
+  <div class="panel">
+    <div class="panel-title">Daftar User</div>
+    <table>
+      <thead><tr><th>#</th><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead>
+      <tbody id="userTable"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.5rem">Memuat...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal edit -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit User</div>
+    <input type="hidden" id="editId">
+    <div class="form-grid">
+      <div class="form-field"><label>Nama Lengkap</label><input type="text" id="editName"></div>
+      <div class="form-field"><label>Role</label>
+        <select id="editRole"><option value="user">User</option><option value="admin">Admin</option><option value="developer">Developer</option></select>
+      </div>
+      <div class="form-field" style="grid-column:1/-1"><label>Password Baru (kosongkan jika tidak diubah)</label><input type="password" id="editPassword" placeholder="Kosongkan jika tidak diubah"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn-primary" onclick="simpanEdit()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var me = null;
+
+async function init(){
+  var r = await fetch('/api/auth/me');
+  if(!r.ok){ location.href='/login'; return; }
+  me = await r.json();
+  document.getElementById('userInfo').textContent = me.name + ' (' + me.role + ')';
+  loadUsers();
+}
+
+async function loadUsers(){
+  var r = await fetch('/api/users');
+  if(!r.ok){ showToast('Gagal memuat data user','err'); return; }
+  var users = await r.json();
+  var html = '';
+  users.forEach(function(u, i){
+    var badgeCls = u.role==='developer'?'badge-dev':u.role==='admin'?'badge-admin':'badge-user';
+    var isMe = me && u.id === me.id;
+    var canEdit = me && (me.role==='developer' || u.role!=='developer');
+    html += '<tr>'+
+      '<td style="color:var(--text-muted)">'+(i+1)+'</td>'+
+      '<td><strong>'+u.username+'</strong>'+(isMe?' <span style="font-size:.65rem;color:var(--accent)">(Anda)</span>':'')+'</td>'+
+      '<td>'+u.name+'</td>'+
+      '<td><span class="role-badge '+badgeCls+'">'+u.role+'</span></td>'+
+      '<td style="display:flex;gap:.4rem">'+
+        (canEdit?'<button class="btn-sm btn-edit" onclick="openEdit(\''+u.id+'\',\''+u.name+'\',\''+u.role+'\')">Edit</button>':'')+
+        (!isMe&&canEdit?'<button class="btn-sm btn-del" onclick="hapusUser(\''+u.id+'\',\''+u.username+'\')">Hapus</button>':'')+
+      '</td>'+
+    '</tr>';
+  });
+  document.getElementById('userTable').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Belum ada user</td></tr>';
+}
+
+async function tambahUser(){
+  var username=document.getElementById('newUsername').value.trim();
+  var name=document.getElementById('newName').value.trim();
+  var password=document.getElementById('newPassword').value;
+  var role=document.getElementById('newRole').value;
+  if(!username||!name||!password){ showToast('Semua field wajib diisi','err'); return; }
+  if(password.length<6){ showToast('Password minimal 6 karakter','err'); return; }
+  var r=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,name,password,role})});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menambah user','err'); return; }
+  showToast('User berhasil ditambahkan','ok');
+  document.getElementById('newUsername').value='';
+  document.getElementById('newName').value='';
+  document.getElementById('newPassword').value='';
+  loadUsers();
+}
+
+function openEdit(id,name,role){
+  document.getElementById('editId').value=id;
+  document.getElementById('editName').value=name;
+  document.getElementById('editRole').value=role;
+  document.getElementById('editPassword').value='';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('editModal').classList.remove('open'); }
+
+async function simpanEdit(){
+  var id=document.getElementById('editId').value;
+  var name=document.getElementById('editName').value.trim();
+  var role=document.getElementById('editRole').value;
+  var password=document.getElementById('editPassword').value;
+  var body={name,role};
+  if(password){ if(password.length<6){ showToast('Password minimal 6 karakter','err'); return; } body.password=password; }
+  var r=await fetch('/api/users/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menyimpan','err'); return; }
+  showToast('User berhasil diperbarui','ok');
+  closeModal(); loadUsers();
+}
+
+async function hapusUser(id,username){
+  if(!confirm('Hapus user "'+username+'"?')) return;
+  var r=await fetch('/api/users/'+id,{method:'DELETE'});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menghapus','err'); return; }
+  showToast('User dihapus','ok'); loadUsers();
+}
+
+async function logout(){
+  await fetch('/api/auth/logout',{method:'POST'});
+  location.href='/login';
+}
+
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type;
+  clearTimeout(window._tt); window._tt=setTimeout(function(){ t.className='toast'; },3000);
+}
+
+init();
+</script>
+</body>
+</html>

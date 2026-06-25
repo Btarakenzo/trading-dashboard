@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "username": "developer",
+    "password": "$2b$10$<bcrypt-hash-of-password>",
+    "name": "Developer",
+    "role": "developer"
+  },
+  {
+    "id": "2",
+    "username": "admin",
+    "password": "$2b$10$<bcrypt-hash-of-password>",
+    "name": "Administrator",
+    "role": "admin"
+  }
+]

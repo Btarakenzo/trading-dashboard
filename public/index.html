@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="KenzProject">
+  <meta name="description" content="Trading Dashboard BEI — Analisis Saham IDX Real-time oleh KenzProject">
+  <title>BEI Trading Dashboard | KenzProject</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 600px) { .cards-grid { grid-template-columns: 1fr; } }
+    .card { overflow: visible; }
+
+    /* Picker */
+    .card-picker-wrap { position: relative; }
+    .card-picker-btn {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-muted); cursor: pointer; font-size: .7rem; padding: .2rem .55rem;
+      display: inline-flex; align-items: center; gap: .3rem; transition: border-color .15s, color .15s;
+    }
+    .card-picker-btn:hover { border-color: var(--accent); color: var(--text); }
+    .card-picker-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); right: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      width: 260px; max-height: 300px; overflow: hidden; z-index: 999;
+      box-shadow: 0 8px 24px rgba(0,0,0,.6); flex-direction: column;
+    }
+    .card-picker-dropdown.open { display: flex; }
+    .picker-search {
+      margin: .5rem; padding: .4rem .6rem; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 5px; color: var(--text);
+      font-size: .8rem; outline: none; flex-shrink: 0;
+    }
+    .picker-search:focus { border-color: var(--accent); }
+    .picker-list { overflow-y: auto; flex: 1; padding: .25rem 0; }
+    .picker-item {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .35rem .75rem; cursor: pointer; font-size: .78rem;
+    }
+    .picker-item:hover { background: var(--surface2); }
+    .picker-item.active { background: rgba(99,102,241,.12); }
+    .picker-item-ticker { font-weight: 700; color: var(--accent); min-width: 48px; font-size: .75rem; }
+    .picker-item-info { display: flex; flex-direction: column; }
+    .picker-item-name { color: var(--text); font-size: .72rem; }
+    .picker-item-sector { color: var(--text-muted); font-size: .65rem; }
+
+    /* Mode Toggle */
+    /* Mode + Price combined row */
+    .price-row {
+      display: flex; align-items: center; gap: 0;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; padding: .25rem;
+    }
+    .mode-toggle { display: flex; flex-shrink: 0; gap: .2rem; }
+    .mode-btn {
+      padding: .28rem .6rem; border: none; border-radius: 7px;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      font-size: .68rem; font-weight: 700; transition: all .18s; white-space: nowrap;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,.45), 0 1px 2px rgba(0,0,0,.3);
+      transform: translateY(-1px);
+    }
+    .mode-btn:hover:not(.active) { background: var(--border); color: var(--text); }
+    .price-row-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; margin: 0 .35rem; }
+    .price-display {
+      flex: 1; display: flex; align-items: center; justify-content: space-between;
+      padding: .3rem .6rem; min-height: 36px; min-width: 0;
+    }
+    .price-live { font-size: .95rem; font-weight: 800; }
+    .price-live.up { color: var(--green); }
+    .price-live.down { color: var(--red); }
+    .price-live.flat { color: var(--text-muted); }
+    .price-change { font-size: .7rem; font-weight: 700; }
+    .price-change.up { color: var(--green); }
+    .price-change.down { color: var(--red); }
+    .price-change.flat { color: var(--text-muted); }
+    .price-loading { font-size: .7rem; color: var(--text-muted); font-style: italic; }
+    .price-manual-input { flex: 1; width: 100% !important; font-weight: 700; font-size: .88rem; border: none !important; background: transparent !important; outline: none; padding: 0 !important; color: var(--text); }
+
+    /* Level inputs */
+    .level-inputs { display: grid; grid-template-columns: repeat(3,1fr); gap: .35rem; }
+    .level-input-item { display: flex; flex-direction: column; gap: .15rem; }
+    .level-input-item label { font-size: .6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: .5px; }
+    .level-input-item input { width: 100%; font-size: .8rem; padding: .3rem .4rem; text-align: center; font-weight: 600; }
+    .level-input-item input:focus { border-color: var(--accent); }
+    .level-input-item.entry input { border-color: rgba(96,165,250,.4); color: #60a5fa; }
+    .level-input-item.sl    input { border-color: rgba(239,68,68,.4);  color: var(--red); }
+    .level-input-item.tp1   input { border-color: rgba(74,222,128,.4); color: var(--green); }
+    .level-input-item.tp2   input { border-color: rgba(134,239,172,.3); color: #86efac; }
+    .level-input-item.lot   input { border-color: rgba(99,102,241,.4); color: var(--accent); }
+
+    /* Analysis */
+    .card-analysis {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: .65rem .75rem; display: flex; flex-direction: column; gap: .4rem;
+    }
+    .analysis-row { display: flex; align-items: flex-start; gap: .5rem; font-size: .72rem; line-height: 1.4; }
+    .analysis-icon { flex-shrink: 0; width: 16px; text-align: center; }
+    .analysis-text { color: var(--text-muted); flex: 1; }
+    .analysis-text b { color: var(--text); font-weight: 700; }
+    .analysis-text .tag-go   { color: var(--green); font-weight: 700; }
+    .analysis-text .tag-skip { color: var(--red);   font-weight: 700; }
+    .analysis-text .tag-tipis{ color: var(--yellow); font-weight: 700; }
+    .analysis-text .tag-wait { color: var(--text-muted); font-weight: 700; }
+    .analysis-divider { border: none; border-top: 1px solid var(--border); margin: .1rem 0; }
+    .analysis-conclusion { font-size: .73rem; font-weight: 600; color: var(--text); line-height: 1.5; }
+    .analysis-empty { font-size: .72rem; color: var(--text-muted); font-style: italic; text-align: center; padding: .5rem 0; }
+
+    /* Stats row */
+    .stats-row {
+      background: linear-gradient(90deg, rgba(234,179,8,.06), rgba(99,102,241,.06));
+      border-bottom: 1px solid rgba(234,179,8,.15); padding: .4rem 1.5rem;
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem;
+    }
+    .stats-sessions { display: flex; align-items: center; gap: .75rem; }
+    .session-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .72rem; font-weight: 700; padding: .2rem .55rem;
+      border-radius: 4px; border: 1px solid transparent;
+      position: relative; cursor: default;
+    }
+    .session-badge.open   { background: rgba(34,197,94,.12);   color: var(--green);      border-color: rgba(34,197,94,.25); }
+    .session-badge.closed { background: rgba(100,116,139,.1);  color: var(--text-muted); border-color: var(--border); }
+    .session-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .session-dot.open   { background: var(--green); animation: pulse 2s infinite; }
+    .session-dot.closed { background: var(--text-muted); }
+    /* Tooltip jam bursa */
+    .sess-tooltip {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: .5rem .65rem; min-width: 210px;
+      z-index: 300; box-shadow: 0 8px 24px rgba(0,0,0,.65); white-space: nowrap;
+    }
+    .session-badge:hover .sess-tooltip { display: block; }
+    .st-title { font-size: .65rem; font-weight: 800; color: var(--text); margin-bottom: .35rem; letter-spacing: .5px; }
+    .st-row {
+      display: flex; justify-content: space-between; gap: 1rem;
+      font-size: .65rem; color: var(--text-muted); padding: .1rem .2rem; border-radius: 3px;
+    }
+    .st-row.st-active {
+      background: rgba(99,102,241,.12); color: var(--text); font-weight: 700;
+      border-left: 2px solid var(--accent); padding-left: .35rem;
+    }
+    .st-row.st-active .st-time { color: var(--accent); }
+    .st-time { font-variant-numeric: tabular-nums; }
+    .st-divider { border: none; border-top: 1px dashed var(--border); margin: .3rem 0; }
+    .st-tz { font-size: .6rem; color: var(--text-muted); text-align: right; margin-top: .25rem; opacity: .7; }
+    .stats-kurs { display: flex; align-items: center; gap: .6rem; justify-content: center; }
+    .kurs-label { font-size: .65rem; font-weight: 700; color: #a16207; text-transform: uppercase; letter-spacing: 1px; }
+    .kurs-value { font-size: .95rem; font-weight: 800; color: #fbbf24; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+    .kurs-change { font-size: .72rem; font-weight: 700; }
+    .kurs-change.up   { color: var(--green); }
+    .kurs-change.down { color: var(--red); }
+    .kurs-change.flat { color: var(--text-muted); }
+    .stats-update { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; font-size: .7rem; color: var(--text-muted); }
+    .stats-update-time { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+
+    /* Ticker tape */
+    .ticker-tape { background: var(--surface); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: .3rem 0; cursor: default; }
+    .ticker-tape:hover .ticker-track { animation-play-state: paused; }
+    .ticker-track { display: inline-block; animation: tickerScroll 50s linear infinite; }
+    .ticker-item { display: inline-flex; align-items: center; gap: .4rem; padding: 0 1.5rem; font-size: .75rem; border-right: 1px solid var(--border); }
+    .ticker-item-name { color: var(--text-muted); font-weight: 600; }
+    .ticker-item-price { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ticker-item-pct { font-weight: 700; font-size: .7rem; }
+    .ticker-item-pct.up   { color: var(--green); }
+    .ticker-item-pct.down { color: var(--red); }
+    .ticker-item-pct.flat { color: var(--text-muted); }
+    @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* Progress bar */
+    .refresh-progress { position: fixed; top: 56px; left: 0; width: 100%; height: 2px; background: var(--border); z-index: 99; }
+    .refresh-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #22c55e); transition: none; }
+    .refresh-progress-fill.running { animation: countdownFill 5s linear forwards; }
+    @keyframes countdownFill { from{width:0%} to{width:100%} }
+
+    /* Neon clock */
+    .neon-clock {
+      font-family: 'Courier New', monospace; font-size: 1rem; font-weight: 700;
+      letter-spacing: 2px; color: #00f0ff; white-space: nowrap;
+      text-shadow: 0 0 4px #00f0ff, 0 0 10px #00f0ff, 0 0 20px #0088ff, 0 0 40px #0044cc;
+      animation: neonFlicker 4s infinite;
+    }
+    .neon-clock .wib-label { font-size: .65rem; color: #7b8fa1; text-shadow: none; letter-spacing: 1px; margin-left: 4px; }
+    @keyframes neonFlicker { 0%,19%,21%,23%,25%,54%,56%,100%{opacity:1} 20%,22%,24%,55%{opacity:.85} }
+
+    /* Flash */
+    @keyframes flashUp   { 0%{box-shadow:inset 0 0 0 2px rgba(34,197,94,.8),0 0 16px rgba(34,197,94,.3);background:rgba(34,197,94,.08)} 100%{box-shadow:none;background:var(--surface)} }
+    @keyframes flashDown { 0%{box-shadow:inset 0 0 0 2px rgba(239,68,68,.8),0 0 16px rgba(239,68,68,.3);background:rgba(239,68,68,.08)} 100%{box-shadow:none;background:var(--surface)} }
+    .flash-up   { animation: flashUp   1.2s ease-out forwards; }
+    .flash-down { animation: flashDown 1.2s ease-out forwards; }
+
+    /* Refresh bar */
+    .refresh-bar { display: flex; align-items: center; gap: .75rem; font-size: .72rem; color: var(--text-muted); }
+    .refresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
+    .refresh-dot.live  { background: var(--green); animation: pulse 2s infinite; }
+    .refresh-dot.error { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Empty slot */
+    .slot-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
+    .slot-empty p { margin-top: .5rem; font-size: .75rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <span class="logo">&#x1F4C8; BEI Dashboard</span>
+    <span class="neon-clock" id="clock">--:--:--.-- <span class="wib-label">WIB</span></span>
+  </div>
+  <div class="header-right">
+    <span id="headerUser" style="font-size:.72rem;color:var(--text-muted)"></span>
+    <button class="btn btn-secondary" onclick="analisisSemua()">&#x26A1; Analisis</button>
+    <button class="btn btn-ghost" onclick="salinRingkasan()">&#x1F4CB; Salin</button>
+    <button class="btn btn-ghost" style="font-size:.75rem;color:var(--red)" onclick="logout()">Keluar</button>
+  </div>
+</header>
+<div class="refresh-progress"><div class="refresh-progress-fill" id="progressFill"></div></div>
+
+<div class="stats-row">
+  <div class="stats-sessions" id="statsSessions"></div>
+  <div class="stats-kurs">
+    <span class="kurs-label">&#x1F4B5; USD/IDR</span>
+    <span class="kurs-value" id="kursValue">—</span>
+    <span class="kurs-change flat" id="kursChange"></span>
+  </div>
+  <div class="stats-update">
+    <span>Last update</span>
+    <span class="stats-update-time" id="lastUpdateTime">—</span>
+  </div>
+</div>
+
+<div class="ticker-tape">
+  <div class="ticker-track" id="tickerTrack">
+    <span class="ticker-item"><span class="ticker-item-name">Memuat data global...</span></span>
+  </div>
+</div>
+
+<main>
+  <div class="ihsg-panel">
+    <div class="ihsg-inputs">
+      <div class="ihsg-field"><label>IHSG Sekarang</label><input type="number" id="ihsgVal" placeholder="misal: 7250" oninput="analisisMarket()"></div>
+      <div class="ihsg-field"><label>IHSG Kemarin</label><input type="number" id="ihsgRef" placeholder="misal: 7200" oninput="analisisMarket()"></div>
+      <div class="ihsg-field"><label>Volume (M)</label><input type="number" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()"></div>
+    </div>
+    <div class="market-status">
+      <div class="market-badge neutral" id="marketBadge">&#x23FA; Masukkan IHSG</div>
+      <div class="market-note" id="marketNote">Isi IHSG hari ini dan kemarin untuk analisis kondisi market.</div>
+    </div>
+    <div class="refresh-bar">
+      <span class="refresh-dot" id="refreshDot"></span>
+      <span id="refreshStatus">Harga belum dimuat</span>
+      <button class="btn btn-ghost" style="font-size:.72rem;padding:.3rem .6rem" onclick="fetchPrices()">&#x21BB;</button>
+    </div>
+  </div>
+
+  <!-- Modal overlay ringkasan -->
+  <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)tutupModal()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="summary-title" style="margin:0">&#x1F4CA; Ringkasan Analisis</div>
+        <button class="btn btn-ghost" style="padding:.3rem .6rem;font-size:.8rem" onclick="tutupModal()">&#x2715;</button>
+      </div>
+      <div class="summary-stats" id="summaryStats"></div>
+      <div class="summary-list" id="summaryList"></div>
+      <div class="summary-actions">
+        <button class="btn btn-secondary" onclick="tutupModal()">Tutup</button>
+        <button class="btn btn-ghost" id="salinBtn" onclick="salinRingkasan()">&#x1F4CB; Salin Teks</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+</main>
+
+<!-- Popup demo limit -->
+<div id="demoPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem 1.75rem;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+    <div style="font-size:2.5rem;margin-bottom:.75rem">🔒</div>
+    <div style="font-size:1rem;font-weight:800;margin-bottom:.5rem;color:var(--text)">Batas Demo Tercapai</div>
+    <div style="font-size:.82rem;color:var(--text-muted);line-height:1.6;margin-bottom:1.5rem">
+      Anda telah menggunakan <strong style="color:var(--accent)">2 percobaan</strong> analisis gratis.<br>
+      Daftar sekarang untuk mendapatkan <strong style="color:var(--green)">Full Akses</strong> tanpa batas.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      <a href="/login" style="display:block;background:var(--accent);color:#fff;padding:.7rem 1.2rem;border-radius:8px;font-weight:800;font-size:.9rem;text-decoration:none;transition:background .15s">&#x1F680; Daftar / Login Sekarang</a>
+      <button onclick="document.getElementById('demoPopup').style.display='none'" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:.55rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">Tutup</button>
+    </div>
+    <div style="font-size:.68rem;color:var(--text-muted);margin-top:1rem;opacity:.6">KenzProject · BEI Trading Dashboard</div>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:.75rem 1.5rem;border-top:1px solid var(--border);background:var(--surface);font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:.5rem">
+  <span>&#x1F4C8; BEI Trading Dashboard</span>
+  <span style="color:var(--border)">|</span>
+  <span>Dibuat oleh <strong style="color:var(--accent)">KenzProject</strong></span>
+  <span style="color:var(--border)">|</span>
+  <span>Data Real-time</span>
+  <span style="color:var(--border)">|</span>
+  <span id="footerYear"></span>
+</footer>
+
+<script>
+// ============================================================
+// IDX STOCKS DATABASE
+// ============================================================
+var IDX_STOCKS = [
+  // Perbankan
+  {t:'BBCA',n:'Bank Central Asia',s:'Perbankan'},
+  {t:'BBRI',n:'Bank Rakyat Indonesia',s:'Perbankan'},
+  {t:'BMRI',n:'Bank Mandiri',s:'Perbankan'},
+  {t:'BBNI',n:'Bank Negara Indonesia',s:'Perbankan'},
+  {t:'BRIS',n:'Bank Syariah Indonesia',s:'Perbankan'},
+  {t:'BBTN',n:'Bank Tabungan Negara',s:'Perbankan'},
+  {t:'BNGA',n:'Bank CIMB Niaga',s:'Perbankan'},
+  {t:'BJBR',n:'Bank BJB',s:'Perbankan'},
+  {t:'BJTM',n:'Bank Jatim',s:'Perbankan'},
+  {t:'BDMN',n:'Bank Danamon',s:'Perbankan'},
+  {t:'BTPS',n:'Bank BTPN Syariah',s:'Perbankan'},
+  {t:'NISP',n:'Bank OCBC NISP',s:'Perbankan'},
+  {t:'MEGA',n:'Bank Mega',s:'Perbankan'},
+  {t:'ARTO',n:'Bank Jago',s:'Perbankan'},
+  {t:'PNBN',n:'Bank Pan Indonesia',s:'Perbankan'},
+  {t:'BNII',n:'Bank Maybank Indonesia',s:'Perbankan'},
+  {t:'MAYA',n:'Bank Mayapada',s:'Perbankan'},
+  {t:'NOBU',n:'Bank National Nobu',s:'Perbankan'},
+  {t:'BBYB',n:'Bank Neo Commerce',s:'Perbankan'},
+  {t:'AGRO',n:'Bank Rakyat Indonesia Agroniaga',s:'Perbankan'},
+  {t:'MCOR',n:'Bank China Construction Bank',s:'Perbankan'},
+  {t:'SDRA',n:'Bank Woori Saudara',s:'Perbankan'},
+  {t:'BACA',n:'Bank Capital Indonesia',s:'Perbankan'},
+  {t:'INPC',n:'Bank Artha Graha',s:'Perbankan'},
+  {t:'DNAR',n:'Bank Oke Indonesia',s:'Perbankan'},
+  {t:'BGTG',n:'Bank Ganesha',s:'Perbankan'},
+  {t:'BSIM',n:'Sinarmas Multi Artha',s:'Perbankan'},
+  // Telekomunikasi
+  {t:'TLKM',n:'Telkom Indonesia',s:'Telekomunikasi'},
+  {t:'EXCL',n:'XL Axiata',s:'Telekomunikasi'},
+  {t:'ISAT',n:'Indosat Ooredoo Hutchison',s:'Telekomunikasi'},
+  {t:'FREN',n:'Smartfren Telecom',s:'Telekomunikasi'},
+  {t:'TOWR',n:'Sarana Menara Nusantara',s:'Telekomunikasi'},
+  {t:'TBIG',n:'Tower Bersama Infrastructure',s:'Telekomunikasi'},
+  {t:'SUPR',n:'Solusi Tunas Pratama',s:'Telekomunikasi'},
+  {t:'BALI',n:'Bali Towerindo Sentra',s:'Telekomunikasi'},
+  {t:'WIFI',n:'Solusi Sinergi Digital',s:'Telekomunikasi'},
+  // Consumer Goods
+  {t:'UNVR',n:'Unilever Indonesia',s:'Consumer Goods'},
+  {t:'MYOR',n:'Mayora Indah',s:'Consumer Goods'},
+  {t:'ICBP',n:'Indofood CBP',s:'Consumer Goods'},
+  {t:'INDF',n:'Indofood Sukses Makmur',s:'Consumer Goods'},
+  {t:'GGRM',n:'Gudang Garam',s:'Consumer Goods'},
+  {t:'HMSP',n:'HM Sampoerna',s:'Consumer Goods'},
+  {t:'ULTJ',n:'Ultra Jaya Milk',s:'Consumer Goods'},
+  {t:'CLEO',n:'Sariguna Primatirta',s:'Consumer Goods'},
+  {t:'ROTI',n:'Nippon Indosari Corpindo',s:'Consumer Goods'},
+  {t:'DLTA',n:'Delta Djakarta',s:'Consumer Goods'},
+  {t:'MLBI',n:'Multi Bintang Indonesia',s:'Consumer Goods'},
+  {t:'SIDO',n:'Sido Muncul',s:'Consumer Goods'},
+  {t:'ADES',n:'Akasha Wira International',s:'Consumer Goods'},
+  {t:'SKLT',n:'Sekar Laut',s:'Consumer Goods'},
+  {t:'HOKI',n:'Buyung Poetra Sembada',s:'Consumer Goods'},
+  {t:'SKBM',n:'Sekar Bumi',s:'Consumer Goods'},
+  {t:'CAMP',n:'Campina Ice Cream',s:'Consumer Goods'},
+  {t:'KEJU',n:'Mulia Boga Raya',s:'Consumer Goods'},
+  {t:'DMND',n:'Diamond Food Indonesia',s:'Consumer Goods'},
+  {t:'GOOD',n:'Garudafood Putra Putri Jaya',s:'Consumer Goods'},
+  {t:'CINT',n:'Chitose Internasional',s:'Consumer Goods'},
+  // Healthcare & Farmasi
+  {t:'KLBF',n:'Kalbe Farma',s:'Healthcare'},
+  {t:'MIKA',n:'Mitra Keluarga Karyasehat',s:'Healthcare'},
+  {t:'KAEF',n:'Kimia Farma',s:'Healthcare'},
+  {t:'HEAL',n:'Medikaloka Hermina',s:'Healthcare'},
+  {t:'SILO',n:'Siloam International Hospitals',s:'Healthcare'},
+  {t:'SOHO',n:'Soho Global Health',s:'Healthcare'},
+  {t:'DVLA',n:'Darya-Varia Laboratoria',s:'Healthcare'},
+  {t:'TSPC',n:'Tempo Scan Pacific',s:'Healthcare'},
+  {t:'MERK',n:'Merck Indonesia',s:'Healthcare'},
+  {t:'INAF',n:'Indofarma',s:'Healthcare'},
+  {t:'PYFA',n:'Pyridam Farma',s:'Healthcare'},
+  {t:'PEHA',n:'Phapros',s:'Healthcare'},
+  {t:'SAME',n:'Sarana Meditama Metropolitan',s:'Healthcare'},
+  {t:'IRRA',n:'Itama Ranoraya',s:'Healthcare'},
+  // Energi
+  {t:'PGAS',n:'Perusahaan Gas Negara',s:'Energi'},
+  {t:'ADRO',n:'Adaro Energy Indonesia',s:'Energi'},
+  {t:'AADI',n:'Adaro Andalan Indonesia',s:'Energi'},
+  {t:'PTBA',n:'Bukit Asam',s:'Energi'},
+  {t:'ITMG',n:'Indo Tambangraya Megah',s:'Energi'},
+  {t:'HRUM',n:'Harum Energy',s:'Energi'},
+  {t:'MEDC',n:'Medco Energi',s:'Energi'},
+  {t:'ELSA',n:'Elnusa',s:'Energi'},
+  {t:'AKRA',n:'AKR Corporindo',s:'Energi'},
+  {t:'PGEO',n:'Pertamina Geothermal Energy',s:'Energi'},
+  {t:'TOBA',n:'TBS Energi Utama',s:'Energi'},
+  {t:'GEMS',n:'Golden Energy Mines',s:'Energi'},
+  {t:'MBAP',n:'Mitrabara Adiperdana',s:'Energi'},
+  {t:'MYOH',n:'Samindo Resources',s:'Energi'},
+  {t:'PTRO',n:'Petrosea',s:'Energi'},
+  {t:'ESSA',n:'Esse',s:'Energi'},
+  {t:'INDY',n:'Indika Energy',s:'Energi'},
+  {t:'DEWA',n:'Darma Henwa',s:'Energi'},
+  {t:'KKGI',n:'Resource Alam Indonesia',s:'Energi'},
+  {t:'RUIS',n:'Radiant Utama Interinsco',s:'Energi'},
+  // Pertambangan
+  {t:'ANTM',n:'Aneka Tambang',s:'Pertambangan'},
+  {t:'INCO',n:'Vale Indonesia',s:'Pertambangan'},
+  {t:'MDKA',n:'Merdeka Copper Gold',s:'Pertambangan'},
+  {t:'BUMI',n:'Bumi Resources',s:'Pertambangan'},
+  {t:'TINS',n:'Timah',s:'Pertambangan'},
+  {t:'PSAB',n:'J Resources Asia Pasifik',s:'Pertambangan'},
+  {t:'SMMT',n:'Golden Eagle Energy',s:'Pertambangan'},
+  {t:'DOID',n:'Delta Dunia Makmur',s:'Pertambangan'},
+  {t:'BOSS',n:'Borneo Olah Sarana Sukses',s:'Pertambangan'},
+  {t:'PURE',n:'Trinitan Metals and Minerals',s:'Pertambangan'},
+  {t:'NCKL',n:'Trimegah Bangun Persada',s:'Pertambangan'},
+  // Properti
+  {t:'BSDE',n:'Bumi Serpong Damai',s:'Properti'},
+  {t:'SMRA',n:'Summarecon Agung',s:'Properti'},
+  {t:'CTRA',n:'Ciputra Development',s:'Properti'},
+  {t:'PWON',n:'Pakuwon Jati',s:'Properti'},
+  {t:'LPKR',n:'Lippo Karawaci',s:'Properti'},
+  {t:'ASRI',n:'Alam Sutera Realty',s:'Properti'},
+  {t:'DMAS',n:'Puradelta Lestari',s:'Properti'},
+  {t:'KIJA',n:'Kawasan Industri Jababeka',s:'Properti'},
+  {t:'MDLN',n:'Modernland Realty',s:'Properti'},
+  {t:'APLN',n:'Agung Podomoro Land',s:'Properti'},
+  {t:'JRPT',n:'Jaya Real Property',s:'Properti'},
+  {t:'MMLP',n:'Mega Manunggal Property',s:'Properti'},
+  {t:'GPRA',n:'Perdana Gapuraprima',s:'Properti'},
+  {t:'NIRO',n:'Nirvana Development',s:'Properti'},
+  {t:'PLIN',n:'Plaza Indonesia Realty',s:'Properti'},
+  // Infrastruktur & Konstruksi
+  {t:'WIKA',n:'Wijaya Karya',s:'Infrastruktur'},
+  {t:'WSKT',n:'Waskita Karya',s:'Infrastruktur'},
+  {t:'PTPP',n:'PP Persero',s:'Infrastruktur'},
+  {t:'JSMR',n:'Jasa Marga',s:'Infrastruktur'},
+  {t:'ADHI',n:'Adhi Karya',s:'Infrastruktur'},
+  {t:'WTON',n:'Wijaya Karya Beton',s:'Infrastruktur'},
+  {t:'NRCA',n:'Nusa Raya Cipta',s:'Infrastruktur'},
+  {t:'TOTL',n:'Total Bangun Persada',s:'Infrastruktur'},
+  {t:'WEGE',n:'Wijaya Karya Gedung',s:'Infrastruktur'},
+  {t:'ACST',n:'Acset Indonusa',s:'Infrastruktur'},
+  // Otomotif
+  {t:'ASII',n:'Astra International',s:'Otomotif'},
+  {t:'AUTO',n:'Astra Otoparts',s:'Otomotif'},
+  {t:'SMSM',n:'Selamat Sempurna',s:'Otomotif'},
+  {t:'GJTL',n:'Gajah Tunggal',s:'Otomotif'},
+  {t:'INDS',n:'Indospring',s:'Otomotif'},
+  {t:'DRMA',n:'Dharma Polimetal',s:'Otomotif'},
+  {t:'BOLT',n:'Garuda Metalindo',s:'Otomotif'},
+  {t:'NIPS',n:'Nippress',s:'Otomotif'},
+  // Retail
+  {t:'MAPI',n:'Mitra Adiperkasa',s:'Retail'},
+  {t:'ACES',n:'Ace Hardware Indonesia',s:'Retail'},
+  {t:'AMRT',n:'Sumber Alfaria Trijaya',s:'Retail'},
+  {t:'LPPF',n:'Matahari Department Store',s:'Retail'},
+  {t:'RALS',n:'Ramayana Lestari Sentosa',s:'Retail'},
+  {t:'MIDI',n:'Midi Utama Indonesia',s:'Retail'},
+  {t:'ERAA',n:'Erajaya Swasembada',s:'Retail'},
+  {t:'HERO',n:'Hero Supermarket',s:'Retail'},
+  {t:'MPPA',n:'Matahari Putra Prima',s:'Retail'},
+  // Perkebunan
+  {t:'AALI',n:'Astra Agro Lestari',s:'Perkebunan'},
+  {t:'LSIP',n:'PP London Sumatra',s:'Perkebunan'},
+  {t:'SIMP',n:'Salim Ivomas Pratama',s:'Perkebunan'},
+  {t:'SSMS',n:'Sawit Sumbermas Sarana',s:'Perkebunan'},
+  {t:'TAPG',n:'Triputra Agro Persada',s:'Perkebunan'},
+  {t:'DSNG',n:'Dharma Satya Nusantara',s:'Perkebunan'},
+  {t:'BWPT',n:'Eagle High Plantations',s:'Perkebunan'},
+  {t:'GZCO',n:'Gozco Plantations',s:'Perkebunan'},
+  // Media & Teknologi
+  {t:'SCMA',n:'Surya Citra Media',s:'Media & Teknologi'},
+  {t:'MNCN',n:'Media Nusantara Citra',s:'Media & Teknologi'},
+  {t:'EMTK',n:'Elang Mahkota Teknologi',s:'Media & Teknologi'},
+  {t:'GOTO',n:'GoTo Gojek Tokopedia',s:'Media & Teknologi'},
+  {t:'BUKA',n:'Bukalapak.com',s:'Media & Teknologi'},
+  {t:'VIVA',n:'Visi Media Asia',s:'Media & Teknologi'},
+  {t:'MTDL',n:'Metrodata Electronics',s:'Media & Teknologi'},
+  {t:'FILM',n:'MD Pictures',s:'Media & Teknologi'},
+  // Semen & Material
+  {t:'SMGR',n:'Semen Indonesia',s:'Material'},
+  {t:'INTP',n:'Indocement Tunggal Prakarsa',s:'Material'},
+  {t:'SMBR',n:'Semen Baturaja',s:'Material'},
+  {t:'TOTO',n:'Surya Toto Indonesia',s:'Material'},
+  {t:'ARNA',n:'Arwana Citramulia',s:'Material'},
+  {t:'MARK',n:'Mark Dynamics Indonesia',s:'Material'},
+  // Kimia & Industri
+  {t:'BRPT',n:'Barito Pacific',s:'Kimia'},
+  {t:'TPIA',n:'Chandra Asri Pacific',s:'Kimia'},
+  {t:'INKP',n:'Indah Kiat Pulp & Paper',s:'Kimia'},
+  {t:'TKIM',n:'Tjiwi Kimia',s:'Kimia'},
+  {t:'FASW',n:'Fajar Surya Wisesa',s:'Kimia'},
+  {t:'AKPI',n:'Argha Karya Prima',s:'Kimia'},
+  {t:'TRST',n:'Trias Sentosa',s:'Kimia'},
+  {t:'SPMA',n:'Suparma',s:'Kimia'},
+  // Transportasi & Logistik
+  {t:'BIRD',n:'Blue Bird',s:'Transportasi'},
+  {t:'GIAA',n:'Garuda Indonesia',s:'Transportasi'},
+  {t:'ASSA',n:'Adi Sarana Armada',s:'Transportasi'},
+  {t:'SMDR',n:'Samudera Indonesia',s:'Transportasi'},
+  {t:'IPCC',n:'Indonesia Kendaraan Terminal',s:'Transportasi'},
+  {t:'DEAL',n:'Dewata Freight International',s:'Transportasi'},
+  {t:'WEHA',n:'Weha Transportasi',s:'Transportasi'},
+  // Keuangan Non-Bank
+  {t:'ADMF',n:'Adira Dinamika Multi Finance',s:'Keuangan'},
+  {t:'BFIN',n:'BFI Finance Indonesia',s:'Keuangan'},
+  {t:'MFIN',n:'Mandala Multifinance',s:'Keuangan'},
+  {t:'CFIN',n:'Clipan Finance',s:'Keuangan'},
+  {t:'BBLD',n:'Buana Finance',s:'Keuangan'},
+  {t:'SRTG',n:'Saratoga Investama Sedaya',s:'Keuangan'},
+  {t:'PNIN',n:'Paninvest',s:'Keuangan'},
+  {t:'ASRM',n:'Asuransi Ramayana',s:'Keuangan'},
+  {t:'MREI',n:'Maskapai Reasuransi Indonesia',s:'Keuangan'},
+];
+
+// ============================================================
+// SLOT MANAGEMENT
+// ============================================================
+var DEFAULT_TICKERS = ['TLKM','BBRI','BBCA','BMRI'];
+var DEFAULT_SLOT = {ticker:'',mode:'auto',manualPrice:0,entryLow:0,entryHigh:0,sl:0,tp1:0,tp2:0,lot:1};
+
+var slots = [0,1,2,3].map(function(i) {
+  try {
+    var d = localStorage.getItem('td-slot-'+i);
+    if (d) return JSON.parse(d);
+  } catch(e) {}
+  return Object.assign({}, DEFAULT_SLOT, {ticker: DEFAULT_TICKERS[i]});
+});
+
+function saveSlot(i) {
+  try { localStorage.setItem('td-slot-'+i, JSON.stringify(slots[i])); } catch(e) {}
+}
+
+function getStock(ticker) {
+  return IDX_STOCKS.find(function(s){ return s.t === ticker; }) || {t:ticker, n:ticker, s:'—'};
+}
+
+// ============================================================
+// LIVE PRICES
+// ============================================================
+var livePrices = {};
+var prevPrices = {};
+var refreshTimer = null;
+var globalTimer = null;
+var REFRESH_INTERVAL = 5000;
+var GLOBAL_INTERVAL  = 60000;
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  var now = new Date();
+  var wib = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  var ms  = String(Math.floor(now.getMilliseconds()/10)).padStart(2,'0');
+  document.getElementById('clock').innerHTML =
+    String(wib.getHours()).padStart(2,'0')+':'+
+    String(wib.getMinutes()).padStart(2,'0')+':'+
+    String(wib.getSeconds()).padStart(2,'0')+'.'+ms+
+    ' <span class="wib-label">WIB</span>';
+}
+setInterval(updateClock,10); updateClock();
+
+// ============================================================
+// MARKET SESSIONS
+// ============================================================
+function updateSessions() {
+  var now=new Date(), wib=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  var day=wib.getDay(), h=wib.getHours(), m=wib.getMinutes(), hm=h*60+m;
+  var wd=day>=1&&day<=5, isFri=day===5;
+
+  // IDX (WIB)
+  var idxPreOpen = wd&&hm>=525&&hm<540;   // 08:45-09:00
+  var idxS1      = wd&&hm>=540&&hm<690;   // 09:00-11:30
+  var idxIstira  = wd&&hm>=690&&hm<810;   // 11:30-13:30
+  var idxS2      = wd&&hm>=810&&hm<(isFri?915:900); // 13:30-15:15 Jum / 15:00
+  var idxOpen    = idxS1||idxS2;
+
+  // NYSE (WIB) — ET = WIB-12
+  var nysePre    = wd&&hm>=960&&hm<1290;  // 16:00-21:30 (Pre-Market)
+  var nyseOpen   = wd&&(hm>=1290||hm<240);// 21:30-04:00
+  var nyseAfter  = wd&&hm>=240&&hm<480;   // 04:00-08:00 (After-Hours)
+
+  // TSE (WIB) — JST = WIB+2
+  var tseS1      = wd&&hm>=420&&hm<570;   // 07:00-09:30
+  var tseIstira  = wd&&hm>=570&&hm<630;   // 09:30-10:30
+  var tseS2      = wd&&hm>=630&&hm<810;   // 10:30-13:30
+  var tseOpen    = tseS1||tseS2;
+
+  function sessionLabel(exchange){
+    if(exchange==='IDX'){
+      if(!wd) return 'Libur';
+      if(hm<525) return 'Belum Buka';
+      if(idxPreOpen) return 'Pre-Opening';
+      if(idxS1) return 'Sesi 1 Aktif';
+      if(idxIstira) return 'Istirahat';
+      if(idxS2) return 'Sesi 2 Aktif';
+      return 'Tutup';
+    }
+    if(exchange==='NYSE'){
+      if(!wd) return 'Libur';
+      if(nysePre) return 'Pre-Market';
+      if(nyseOpen) return 'Sesi Aktif';
+      if(nyseAfter) return 'After-Hours';
+      return 'Tutup';
+    }
+    if(exchange==='TSE'){
+      if(!wd) return 'Libur';
+      if(hm<420) return 'Belum Buka';
+      if(tseS1) return 'Sesi 1 Aktif';
+      if(tseIstira) return 'Istirahat';
+      if(tseS2) return 'Sesi 2 Aktif';
+      return 'Tutup';
+    }
+  }
+
+  // Tooltip row builder
+  function sr(label,time,active){
+    return '<div class="st-row'+(active?' st-active':'')+'">'+
+      '<span>'+label+'</span><span class="st-time">'+time+'</span></div>';
+  }
+
+  function buildTooltip(title, rows){
+    return '<div class="sess-tooltip">'+
+      '<div class="st-title">'+title+'</div>'+
+      rows+
+      '<hr class="st-divider">'+
+      '<div class="st-tz">&#x1F55B; Waktu WIB (UTC+7)</div>'+
+    '</div>';
+  }
+
+  var ttIDX = buildTooltip('IDX — Bursa Efek Indonesia',
+    sr('Pre-Opening','08:45 – 09:00', idxPreOpen)+
+    sr('Sesi 1',     '09:00 – 11:30', idxS1)+
+    sr('Istirahat',  '11:30 – 13:30', idxIstira)+
+    sr('Sesi 2 (Sen–Kam)','13:30 – 15:00', idxS2&&!isFri)+
+    sr('Sesi 2 (Jumat)',  '13:30 – 15:15', idxS2&&isFri)
+  );
+  var ttNYSE = buildTooltip('NYSE — New York Stock Exchange',
+    sr('Pre-Market', '16:00 – 21:30', nysePre)+
+    sr('Reguler',    '21:30 – 04:00', nyseOpen)+
+    sr('After-Hours','04:00 – 08:00', nyseAfter)
+  );
+  var ttTSE = buildTooltip('TSE — Tokyo Stock Exchange',
+    sr('Sesi 1',   '07:00 – 09:30', tseS1)+
+    sr('Istirahat','09:30 – 10:30', tseIstira)+
+    sr('Sesi 2',   '10:30 – 13:30', tseS2)
+  );
+
+  function badge(name, open, tooltip){
+    return '<div class="session-badge '+(open?'open':'closed')+'">'+
+      '<span class="session-dot '+(open?'open':'closed')+'"></span>'+
+      name+' '+(open?'Buka':'Tutup')+
+      tooltip+
+    '</div>';
+  }
+  document.getElementById('statsSessions').innerHTML=
+    badge('IDX',idxOpen,ttIDX)+
+    badge('NYSE',nyseOpen,ttNYSE)+
+    badge('TSE',tseOpen,ttTSE);
+}
+setInterval(updateSessions,60000); updateSessions();
+
+// ============================================================
+// MARKET ANALYSIS (IHSG)
+// ============================================================
+function analisisMarket() {
+  var now=parseFloat(document.getElementById('ihsgVal').value);
+  var ref=parseFloat(document.getElementById('ihsgRef').value);
+  var vol=parseFloat(document.getElementById('volMarket').value);
+  var badge=document.getElementById('marketBadge'), note=document.getElementById('marketNote');
+  if(!now||!ref){badge.className='market-badge neutral';badge.innerHTML='&#x23FA; Masukkan IHSG';note.textContent='Isi IHSG hari ini dan kemarin untuk analisis.';return;}
+  var pct=((now-ref)/ref)*100, kondisi,emoji,cls,txt;
+  if(pct>=0.5)      {kondisi='BULLISH';  emoji='&#x1F7E2;';cls='bullish'; txt='Market naik '+pct.toFixed(2)+'%. Momentum positif.';}
+  else if(pct<=-0.5){kondisi='BEARISH';  emoji='&#x1F534;';cls='bearish'; txt='Market turun '+Math.abs(pct).toFixed(2)+'%. Perketat SL.';}
+  else               {kondisi='SIDEWAYS'; emoji='&#x1F7E1;';cls='sideways';txt='IHSG sideways ('+(pct>=0?'+':'')+pct.toFixed(2)+'%). Tunggu konfirmasi.';}
+  if(vol) txt+=vol>=15000?' Volume tinggi — konfirmasi kuat.'  :' Volume rendah — hati-hati false breakout.';
+  badge.className='market-badge '+cls; badge.innerHTML=emoji+' '+kondisi; note.textContent=txt;
+}
+
+// ============================================================
+// RENDER ALL CARDS
+// ============================================================
+function renderAllCards() {
+  var grid=document.getElementById('cardsGrid'); grid.innerHTML='';
+  var count=DEMO_MODE?1:4;
+  if(DEMO_MODE) grid.style.gridTemplateColumns='1fr';
+  for(var i=0;i<count;i++) grid.appendChild(createCard(i));
+}
+
+function createCard(slotIdx) {
+  var slot=slots[slotIdx];
+  var stock=slot.ticker?getStock(slot.ticker):null;
+  var card=document.createElement('div');
+  card.className='card'; card.id='card-slot-'+slotIdx;
+
+  if(!stock||!slot.ticker) {
+    card.innerHTML=
+      '<div class="card-header">'+
+        '<div><div class="card-ticker" style="color:var(--text-muted)">Slot '+(slotIdx+1)+'</div></div>'+
+        pickerBtnHtml(slotIdx,'')+
+      '</div>'+
+      '<div class="slot-empty">&#x1F4CA;<p>Klik "Ganti" untuk pilih saham</p></div>';
+    return card;
+  }
+
+  var p=livePrices[slot.ticker];
+  var priceHtml=buildPriceSection(slotIdx, slot, p);
+
+  card.innerHTML=
+    // Header: ticker + nama kiri | sektor + tombol ganti kanan — 1 baris tiap sisi
+    '<div class="card-header">'+
+      '<div style="min-width:0;flex:1">'+
+        '<div style="display:flex;align-items:center;gap:.4rem">'+
+          '<div class="card-ticker">'+stock.t+'</div>'+
+          '<div class="card-sector" style="font-size:.6rem">'+stock.s+'</div>'+
+        '</div>'+
+        '<div class="card-name">'+stock.n+'</div>'+
+      '</div>'+
+      pickerBtnHtml(slotIdx, slot.ticker)+
+    '</div>'+
+    // Toggle + harga dalam 1 baris terintegrasi
+    '<div class="price-row" id="priceSection-'+slotIdx+'">'+priceHtml+'</div>'+
+    // Level inputs
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:-.1rem">'+
+      '<span style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Level Trading</span>'+
+      '<button style="font-size:.65rem;padding:.15rem .45rem;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:4px;color:var(--accent);cursor:pointer" data-suggest-btn="'+slotIdx+'">&#x1F4A1; Suggest</button>'+
+    '</div>'+
+    '<div class="level-inputs">'+
+      levelInput(slotIdx,'entryLow','Entry Low',slot.entryLow,'entry')+
+      levelInput(slotIdx,'entryHigh','Entry High',slot.entryHigh,'entry')+
+      levelInput(slotIdx,'sl','Stop Loss',slot.sl,'sl')+
+      levelInput(slotIdx,'tp1','TP1',slot.tp1,'tp1')+
+      levelInput(slotIdx,'tp2','TP2',slot.tp2,'tp2')+
+      levelInput(slotIdx,'lot','Lot',slot.lot,'lot')+
+    '</div>'+
+    // R:R
+    '<div class="rr-row" id="rr-'+slotIdx+'">'+
+      '<div class="rr-chip">R:R TP1 <span>-</span></div>'+
+      '<div class="rr-chip">R:R TP2 <span>-</span></div>'+
+      '<div class="rr-chip">Max Rugi <span>-</span></div>'+
+    '</div>'+
+    // Verdict
+    '<div class="verdict wait" id="verdict-'+slotIdx+'"><span>Menunggu harga & level</span><span class="verdict-info">'+slot.lot+' lot</span></div>'+
+    // Analysis
+    '<div class="card-analysis" id="analysis-'+slotIdx+'"><div class="analysis-empty">Isi level entry/SL/TP dan pastikan harga tersedia.</div></div>';
+
+  // Recalc jika data cukup
+  recalcCard(slotIdx);
+  return card;
+}
+
+function levelInput(slotIdx, field, label, val, cls) {
+  return '<div class="level-input-item '+cls+'">'+
+    '<label>'+label+'</label>'+
+    '<input type="number" data-level-input="1" data-slot="'+slotIdx+'" data-field="'+field+'"'+
+      ' value="'+(val||'')+'" placeholder="0">'+
+  '</div>';
+}
+
+function buildPriceSection(slotIdx, slot, p) {
+  var toggleHtml=
+    '<div class="mode-toggle">'+
+      '<button class="mode-btn'+(slot.mode==='auto'?' active':'')+'" data-mode-btn="'+slotIdx+'" data-mode="auto">&#x26A1; Auto</button>'+
+      '<button class="mode-btn'+(slot.mode==='manual'?' active':'')+'" data-mode-btn="'+slotIdx+'" data-mode="manual">&#x270F; Manual</button>'+
+    '</div>';
+
+  var priceInner;
+  if(slot.mode==='manual'){
+    priceInner='<input type="number" class="price-manual-input" data-manual-price="'+slotIdx+'"'+
+      ' value="'+(slot.manualPrice||'')+'" placeholder="Masukkan harga...">';
+  } else if(!p){
+    priceInner='<span class="price-loading">Memuat harga live...</span>';
+  } else if(p.error){
+    priceInner='<span class="price-loading" style="color:var(--red)">'+p.error+'</span>';
+  } else {
+    var dir=p.changePct>0?'up':p.changePct<0?'down':'flat';
+    var sign=p.changePct>0?'+':'';
+    priceInner=
+      '<div>'+
+        '<span class="price-live '+dir+'">Rp '+p.last.toLocaleString('id-ID')+'</span>'+
+        '<span style="font-size:.62rem;color:var(--text-muted);margin-left:.35rem">H:'+p.high.toLocaleString('id-ID')+' L:'+p.low.toLocaleString('id-ID')+'</span>'+
+      '</div>'+
+      '<span class="price-change '+dir+'">'+sign+p.changePct.toFixed(2)+'%</span>';
+  }
+
+  return toggleHtml+'<div class="price-row-divider"></div><div class="price-display">'+priceInner+'</div>';
+}
+
+// ============================================================
+// PICKER
+// ============================================================
+function pickerBtnHtml(slotIdx, currentTicker) {
+  var items=IDX_STOCKS.map(function(s){
+    var active=s.t===currentTicker?' active':'';
+    return '<div class="picker-item'+active+'" data-picker-item="'+slotIdx+'" data-ticker="'+s.t+'">'+
+      '<span class="picker-item-ticker">'+s.t+'</span>'+
+      '<div class="picker-item-info">'+
+        '<span class="picker-item-name">'+s.n+'</span>'+
+        '<span class="picker-item-sector">'+s.s+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  return '<div class="card-picker-wrap" id="pickerWrap-'+slotIdx+'" data-slot="'+slotIdx+'">'+
+    '<button class="card-picker-btn" data-picker-btn="'+slotIdx+'">&#x21C4; Ganti</button>'+
+    '<div class="card-picker-dropdown" id="pickerDd-'+slotIdx+'">'+
+      '<input class="picker-search" type="text" placeholder="Cari ticker atau nama..." data-picker-search="'+slotIdx+'">'+
+      '<div class="picker-list" id="pickerList-'+slotIdx+'">'+items+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function closeAllPickers(){document.querySelectorAll('.card-picker-dropdown.open').forEach(function(el){el.classList.remove('open');});}
+
+function openPicker(slotIdx){
+  var dd=document.getElementById('pickerDd-'+slotIdx);
+  if(!dd) return;
+  var isOpen=dd.classList.contains('open');
+  closeAllPickers();
+  if(!isOpen){
+    dd.classList.add('open');
+    var inp=dd.querySelector('.picker-search');
+    if(inp){inp.value='';filterPicker(slotIdx,'');setTimeout(function(){inp.focus();},50);}
+  }
+}
+
+function filterPicker(slotIdx,q){
+  var lower=q.toLowerCase();
+  document.querySelectorAll('#pickerList-'+slotIdx+' .picker-item').forEach(function(item){
+    item.style.display=item.textContent.toLowerCase().indexOf(lower)!==-1?'':'none';
+  });
+}
+
+// ---- IDX TICK SIZE & AUTO-SUGGEST ----
+function idxTick(p){return p<200?1:p<500?2:p<2000?5:p<5000?25:50;}
+function snap(p,t){return Math.round(p/t)*t;}
+
+function autoSuggestLevels(si){
+  var slot=slots[si];
+  if(!slot.ticker) return;
+  var pd=slot.mode==='auto'?livePrices[slot.ticker]:{last:slot.manualPrice||0};
+  if(!pd||!pd.last) return;
+  var price=pd.last, tk=idxTick(price);
+  // Gunakan low/high hari ini jika tersedia, fallback ke ±1%
+  var entryLow  = snap(pd.low  ? pd.low          : price*0.99, tk);
+  var entryHigh = snap(pd.last ? pd.last          : price,      tk);
+  var sl        = snap(entryLow  * 0.95,  tk);
+  var tp1       = snap(entryHigh * 1.05,  tk);
+  var tp2       = snap(entryHigh * 1.10,  tk);
+  Object.assign(slots[si],{entryLow:entryLow,entryHigh:entryHigh,sl:sl,tp1:tp1,tp2:tp2});
+  saveSlot(si);
+  // Update input fields di DOM
+  ['entryLow','entryHigh','sl','tp1','tp2'].forEach(function(f){
+    var inp=document.querySelector('[data-slot="'+si+'"][data-field="'+f+'"]');
+    if(inp) inp.value=slots[si][f];
+  });
+  recalcCard(si);
+}
+
+function selectStock(slotIdx,ticker){
+  if(!demoCheck()) return;
+  // Reset levels saat ganti saham
+  Object.assign(slots[slotIdx],{ticker:ticker,entryLow:0,entryHigh:0,sl:0,tp1:0,tp2:0});
+  saveSlot(slotIdx);
+  closeAllPickers();
+  var grid=document.getElementById('cardsGrid');
+  var old=document.getElementById('card-slot-'+slotIdx);
+  grid.replaceChild(createCard(slotIdx),old);
+  if(slots[slotIdx].mode==='auto'){
+    if(livePrices[ticker]&&!livePrices[ticker].error){
+      autoSuggestLevels(slotIdx);
+    } else {
+      slots[slotIdx]._needsSuggest=true;
+      fetchPricesFor([ticker]);
+    }
+  }
+}
+
+// ============================================================
+// EVENT DELEGATION
+// ============================================================
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('[data-picker-btn]');
+  if(btn){e.stopPropagation();openPicker(parseInt(btn.getAttribute('data-picker-btn')));return;}
+  var item=e.target.closest('[data-picker-item]');
+  if(item){e.stopPropagation();selectStock(parseInt(item.getAttribute('data-picker-item')),item.getAttribute('data-ticker'));return;}
+  var search=e.target.closest('[data-picker-search]');
+  if(search){e.stopPropagation();return;}
+  var suggestBtn=e.target.closest('[data-suggest-btn]');
+  if(suggestBtn){
+    var si=parseInt(suggestBtn.getAttribute('data-suggest-btn'));
+    // Reset levels lalu suggest ulang
+    Object.assign(slots[si],{entryLow:0,entryHigh:0,sl:0,tp1:0,tp2:0});
+    autoSuggestLevels(si);
+    return;
+  }
+  var modeBtn=e.target.closest('[data-mode-btn]');
+  if(modeBtn){
+    var si=parseInt(modeBtn.getAttribute('data-mode-btn'));
+    var mode=modeBtn.getAttribute('data-mode');
+    slots[si].mode=mode;
+    if(mode==='auto') slots[si].manualPrice=0;
+    saveSlot(si);
+    var p=livePrices[slots[si].ticker];
+    document.getElementById('priceSection-'+si).innerHTML=buildPriceSection(si,slots[si],p);
+    recalcCard(si);
+    if(mode==='auto') fetchPricesFor([slots[si].ticker]);
+    return;
+  }
+  closeAllPickers();
+});
+
+document.addEventListener('input',function(e){
+  // Level inputs
+  var li=e.target.closest('[data-level-input]');
+  if(li){
+    var si=parseInt(li.getAttribute('data-slot'));
+    var field=li.getAttribute('data-field');
+    slots[si][field]=field==='lot'?(parseInt(li.value)||1):(parseFloat(li.value)||0);
+    saveSlot(si);
+    recalcCard(si);
+    return;
+  }
+  // Manual price
+  var mp=e.target.closest('[data-manual-price]');
+  if(mp){
+    var si=parseInt(mp.getAttribute('data-manual-price'));
+    slots[si].manualPrice=parseFloat(mp.value)||0;
+    saveSlot(si);
+    recalcCard(si);
+    return;
+  }
+  // Picker search
+  var ps=e.target.closest('[data-picker-search]');
+  if(ps) filterPicker(parseInt(ps.getAttribute('data-picker-search')),ps.value);
+});
+
+// ============================================================
+// PRICE FETCH
+// ============================================================
+async function fetchPrices(){
+  var tickers=slots.filter(function(s){return s.ticker&&s.mode==='auto';}).map(function(s){return s.ticker;});
+  tickers.push('^JKSE'); // IHSG realtime
+  var unique=[]; tickers.forEach(function(t){if(unique.indexOf(t)===-1)unique.push(t);});
+  await fetchPricesFor(unique);
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(fetchPrices,REFRESH_INTERVAL);
+}
+
+async function fetchPricesFor(tickers){
+  setRefreshStatus('loading');
+  try{
+    var res=await fetch('/api/prices?tickers='+tickers.join(','));
+    var json=await res.json();
+    if(!res.ok){setRefreshStatus('error',json.error||'Error');return;}
+    if(json.prices) Object.assign(livePrices,json.prices);
+    // Update IHSG realtime
+    var ihsgData=livePrices['^JKSE'];
+    if(ihsgData&&!ihsgData.error){
+      var inpNow=document.getElementById('ihsgVal');
+      if(inpNow&&inpNow!==document.activeElement) inpNow.value=Math.round(ihsgData.last);
+      var inpVol=document.getElementById('volMarket');
+      if(inpVol&&inpVol!==document.activeElement&&ihsgData.volume)
+        inpVol.value=Math.round(ihsgData.volume/1000000);
+      analisisMarket();
+    }
+    // Update price sections for auto-mode slots
+    for(var i=0;i<4;i++){
+      if(slots[i].mode==='auto'&&tickers.indexOf(slots[i].ticker)!==-1){
+        var p=livePrices[slots[i].ticker];
+        var ps=document.getElementById('priceSection-'+i);
+        if(ps) ps.innerHTML=buildPriceSection(i,slots[i],p);
+        // Auto-suggest levels jika baru pilih saham atau slot fresh
+        if(p&&!p.error&&(slots[i]._needsSuggest||(!slots[i].entryLow&&!slots[i].sl))){
+          slots[i]._needsSuggest=false;
+          autoSuggestLevels(i);
+        }
+        // Flash
+        var prev=prevPrices[slots[i].ticker];
+        if(p&&!p.error&&prev!==undefined&&p.last!==prev) flashCard(i,p.last>prev?'up':'down');
+        if(p&&!p.error) prevPrices[slots[i].ticker]=p.last;
+        recalcCard(i);
+      }
+    }
+    var now=new Date(),wib=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+    setRefreshStatus('live','Update '+String(wib.getHours()).padStart(2,'0')+':'+String(wib.getMinutes()).padStart(2,'0')+':'+String(wib.getSeconds()).padStart(2,'0'));
+    restartProgressBar();
+  }catch(e){setRefreshStatus('error','Koneksi gagal');}
+}
+
+function setRefreshStatus(state,msg){
+  var dot=document.getElementById('refreshDot'),st=document.getElementById('refreshStatus');
+  dot.className='refresh-dot';
+  if(state==='loading') st.textContent='Memuat...';
+  else if(state==='live'){dot.classList.add('live');st.textContent=msg;}
+  else if(state==='error'){dot.classList.add('error');st.textContent=msg||'Error';}
+}
+
+function restartProgressBar(){
+  var f=document.getElementById('progressFill');
+  f.classList.remove('running'); void f.offsetWidth; f.classList.add('running');
+}
+
+function flashCard(si,dir){
+  var c=document.getElementById('card-slot-'+si); if(!c) return;
+  c.classList.remove('flash-up','flash-down'); void c.offsetWidth;
+  c.classList.add('flash-'+dir);
+  setTimeout(function(){c.classList.remove('flash-up','flash-down');},1200);
+}
+
+// ============================================================
+// GLOBAL DATA
+// ============================================================
+async function fetchGlobal(){
+  try{
+    var res=await fetch('/api/global'), json=await res.json();
+    if(!res.ok||!json.data) return;
+    var kurs=json.data.find(function(d){return d.symbol==='USDIDR=X';});
+    var idx=json.data.filter(function(d){return d.symbol!=='USDIDR=X';});
+    if(kurs){
+      var dir=kurs.changePct>0?'up':kurs.changePct<0?'down':'flat';
+      var sign=kurs.changePct>0?'+':'';
+      var arrow=kurs.changePct>0?'▲':kurs.changePct<0?'▼':'▬';
+      document.getElementById('kursValue').textContent='Rp '+Math.round(kurs.price).toLocaleString('id-ID');
+      var kc=document.getElementById('kursChange');
+      kc.textContent=arrow+' '+sign+kurs.changePct.toFixed(2)+'%'; kc.className='kurs-change '+dir;
+    }
+    var html=idx.map(function(d){
+      var dir=d.changePct>0?'up':d.changePct<0?'down':'flat';
+      var sign=d.changePct>0?'+':'';
+      var arrow=d.changePct>0?'▲':d.changePct<0?'▼':'▬';
+      return '<span class="ticker-item">'+
+        '<span class="ticker-item-name">'+d.name+'</span>'+
+        '<span class="ticker-item-price">'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'+
+        '<span class="ticker-item-pct '+dir+'">'+arrow+' '+sign+d.changePct.toFixed(2)+'%</span>'+
+      '</span>';
+    }).join('');
+    var track=document.getElementById('tickerTrack');
+    track.innerHTML=html+html;
+    var now=new Date(),wib=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+    document.getElementById('lastUpdateTime').textContent=
+      String(wib.getHours()).padStart(2,'0')+':'+String(wib.getMinutes()).padStart(2,'0')+':'+String(wib.getSeconds()).padStart(2,'0')+' WIB';
+  }catch(e){console.warn('Global error:',e.message);}
+  clearTimeout(globalTimer);
+  globalTimer=setTimeout(fetchGlobal,GLOBAL_INTERVAL);
+}
+
+// ============================================================
+// RECALC & ANALYSIS
+// ============================================================
+function recalcCard(si){
+  var slot=slots[si];
+  var price=null;
+  if(slot.mode==='auto'){var p=livePrices[slot.ticker];price=p&&!p.error?p.last:null;}
+  else{price=slot.manualPrice||null;}
+  // Fix Bug #2: wajib entryLow DAN entryHigh keduanya > 0, serta sl > 0
+  if(!price||!slot.sl||!slot.entryLow||!slot.entryHigh){
+    resetCalc(si,slot); return;
+  }
+  kalkulasi(si,slot,price);
+}
+
+function resetCalc(si,slot){
+  var vEl=document.getElementById('verdict-'+si);
+  var rrEl=document.getElementById('rr-'+si);
+  var aEl=document.getElementById('analysis-'+si);
+  if(vEl) vEl.innerHTML='<span>Menunggu harga & level</span><span class="verdict-info">'+(slot?slot.lot:1)+' lot</span>';
+  if(vEl) vEl.className='verdict wait';
+  if(rrEl) rrEl.innerHTML='<div class="rr-chip">R:R TP1 <span>-</span></div><div class="rr-chip">R:R TP2 <span>-</span></div><div class="rr-chip">Max Rugi <span>-</span></div>';
+  if(aEl) aEl.innerHTML='<div class="analysis-empty">Isi level entry/SL/TP dan pastikan harga tersedia.</div>';
+}
+
+function kalkulasi(si, slot, price){
+  var vEl=document.getElementById('verdict-'+si);
+  var rrEl=document.getElementById('rr-'+si);
+  if(!vEl||!rrEl) return;
+  var risk=price-slot.sl;
+  // Fix Bug #1: guard TP1/TP2 = 0 agar tidak menghasilkan R:R negatif
+  var rrTp1=risk>0&&slot.tp1?(slot.tp1-price)/risk:0;
+  var rrTp2=risk>0&&slot.tp2?(slot.tp2-price)/risk:0;
+  var lotVal=slot.lot*100;
+  var maxRugi=risk*lotVal;
+
+  var tp2Chip=slot.tp2
+    ?'<div class="rr-chip">R:R TP2 <span>1:'+rrTp2.toFixed(2)+'</span></div>'
+    :'<div class="rr-chip" style="opacity:.4">R:R TP2 <span>—</span></div>';
+  rrEl.innerHTML=
+    '<div class="rr-chip">R:R TP1 <span>'+(slot.tp1?'1:'+rrTp1.toFixed(2):'—')+'</span></div>'+
+    tp2Chip+
+    '<div class="rr-chip">Max Rugi <span>-Rp'+Math.abs(maxRugi).toLocaleString('id-ID')+'</span></div>';
+
+  var verdict,cls,info;
+  if(price<slot.sl){
+    verdict='&#x1F6D1; SL HIT'; cls='slhit'; info='Harga di bawah SL';
+  } else if(price>=slot.entryLow&&price<=slot.entryHigh){
+    if(slot.tp1&&rrTp1>=2){verdict='&#x1F7E2; GO TRADE';   cls='go';   info='Zona entry · R:R 1:'+rrTp1.toFixed(2);}
+    else                  {verdict='&#x1F7E1; TIPIS';      cls='tipis';info=slot.tp1?'R:R kurang ideal ('+rrTp1.toFixed(2)+')':'Set TP1 untuk lihat R:R';}
+  } else if(price>slot.entryHigh){
+    if(slot.tp1&&price>=slot.tp1){verdict='&#x1F3C1; TP1 TERCAPAI';cls='go';  info='Harga sudah di TP1';}
+    else                          {verdict='&#x1F534; SKIP';        cls='skip';info='Di atas entry — tunggu pullback';}
+  } else {
+    // price < entryLow tapi >= sl → belum turun ke zona entry
+    verdict='&#x23F3; BELUM ENTRY'; cls='wait'; info='Tunggu harga ke '+slot.entryLow.toLocaleString('id-ID')+'-'+slot.entryHigh.toLocaleString('id-ID');
+  }
+
+  vEl.className='verdict '+cls;
+  vEl.innerHTML='<span>'+verdict+'</span><span class="verdict-info">'+info+' · '+slot.lot+' lot</span>';
+  generateAnalysis(si,slot,price,rrTp1,rrTp2,maxRugi);
+}
+
+function generateAnalysis(si,slot,price,rrTp1,rrTp2,maxRugi){
+  var el=document.getElementById('analysis-'+si); if(!el) return;
+  var risk=price-slot.sl;
+  var lotVal=slot.lot*100;
+  var potTp1=(slot.tp1-price)*lotVal;
+  var potTp2=(slot.tp2-price)*lotVal;
+  var pctToTp1=((slot.tp1-price)/price*100).toFixed(1);
+  var posisi,aksi,kesimpulan;
+
+  if(price<slot.sl){
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> sudah <b>di bawah SL '+slot.sl.toLocaleString('id-ID')+'</b> — level support rusak.';
+    aksi='<span class="tag-skip">HINDARI ENTRY.</span> Tunggu konfirmasi pembalikan arah dan support baru.';
+    kesimpulan='Setup tidak valid. SL ditembus — risiko kerugian berlanjut sangat tinggi. Jangan averaging down tanpa sinyal pembalikan yang kuat.';
+  } else if(price>=slot.entryLow&&price<=slot.entryHigh&&rrTp1>=2){
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> berada <b>di zona entry ('+slot.entryLow.toLocaleString('id-ID')+'–'+slot.entryHigh.toLocaleString('id-ID')+')</b>.';
+    aksi='<span class="tag-go">BUY / ENTRY SEKARANG.</span> Masuk bertahap. SL di <b>'+slot.sl.toLocaleString('id-ID')+'</b>, TP1 di <b>'+slot.tp1.toLocaleString('id-ID')+'</b> (+'+pctToTp1+'%).';
+    kesimpulan='Setup menarik — R:R 1:'+rrTp1.toFixed(1)+'. Potensi profit <b>Rp '+Math.round(potTp1).toLocaleString('id-ID')+'</b> dengan risiko <b>Rp '+Math.round(Math.abs(maxRugi)).toLocaleString('id-ID')+'</b> ('+slot.lot+' lot).';
+  } else if(price>=slot.entryLow&&price<=slot.entryHigh){
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> di zona entry namun R:R <b>1:'+rrTp1.toFixed(2)+'</b> kurang ideal (min 1:2).';
+    aksi='<span class="tag-tipis">ENTRY KECIL atau TUNGGU.</span> Jika masuk, gunakan lot lebih kecil dan ketatkan SL.';
+    kesimpulan='Zona entry valid tapi risk-reward kurang optimal. Pertimbangkan menunggu harga lebih dalam ke '+slot.entryLow.toLocaleString('id-ID')+' untuk R:R lebih baik.';
+  } else if(price>slot.entryHigh&&price<slot.tp1){
+    var pctAbove=((price-slot.entryHigh)/slot.entryHigh*100).toFixed(1);
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> sudah <b>'+pctAbove+'% di atas entry high</b> '+slot.entryHigh.toLocaleString('id-ID')+'.';
+    aksi='<span class="tag-skip">JANGAN KEJAR.</span> Tunggu pullback ke zona entry <b>'+slot.entryLow.toLocaleString('id-ID')+'–'+slot.entryHigh.toLocaleString('id-ID')+'</b>.';
+    kesimpulan='Entry di harga ini berisiko — R:R tidak lagi favorable. Disiplin tunggu pullback, hindari FOMO. Pasang alert di zona entry.';
+  } else if(price>=slot.tp1){
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> sudah <b>melewati TP1 '+slot.tp1.toLocaleString('id-ID')+'</b>. Target TP2 di <b>'+slot.tp2.toLocaleString('id-ID')+'</b>.';
+    aksi='<span class="tag-go">HOLD & PARTIAL SELL.</span> Amankan 50% profit di TP1, naikkan SL ke breakeven, tunggu TP2.';
+    kesimpulan='TP1 tercapai! Amankan sebagian profit dan proteksi modal dengan SL di entry. Potensi TP2 masih <b>Rp '+Math.round(potTp2).toLocaleString('id-ID')+'</b>.';
+  } else {
+    posisi='Harga <b>'+price.toLocaleString('id-ID')+'</b> belum mencapai zona entry <b>'+slot.entryLow.toLocaleString('id-ID')+'–'+slot.entryHigh.toLocaleString('id-ID')+'</b>.';
+    aksi='<span class="tag-wait">WAIT & WATCH.</span> Pantau dan entry hanya jika harga turun ke zona entry dengan konfirmasi volume.';
+    kesimpulan='Belum saatnya masuk. Simpan watchlist ini dan tunggu peluang. Pasang price alert di '+slot.entryLow.toLocaleString('id-ID')+'–'+slot.entryHigh.toLocaleString('id-ID')+'.';
+  }
+
+  // Konteks IHSG
+  var ihsgCtx='';
+  var ihsgD=livePrices['^JKSE'];
+  if(ihsgD&&!ihsgD.error){
+    var ihsgPct=ihsgD.changePct;
+    if(ihsgPct>=0.5)       ihsgCtx=' <span style="color:var(--green);font-weight:700">&#x1F7E2; IHSG +'+ihsgPct.toFixed(2)+'% Bullish</span> — market mendukung.';
+    else if(ihsgPct<=-0.5) ihsgCtx=' <span style="color:var(--red);font-weight:700">&#x1F534; IHSG '+ihsgPct.toFixed(2)+'% Bearish</span> — perketat manajemen risiko.';
+    else                   ihsgCtx=' <span style="color:var(--yellow);font-weight:700">&#x1F7E1; IHSG sideways</span> — tunggu konfirmasi arah.';
+  }
+
+  // Fix Bug #1: guard TP1/TP2 = 0 di baris analisa
+  var rrLine=risk>0&&slot.tp1
+    ?'R:R TP1 <b>1:'+rrTp1.toFixed(2)+'</b>'+(rrTp1>=2?' &#x2714; Layak':' &#x26A0; Kurang')+
+      (slot.tp2?' &nbsp;|&nbsp; R:R TP2 <b>1:'+rrTp2.toFixed(2)+'</b>':'')
+    :'R:R tidak dapat dihitung (set TP1)';
+  var potLine=risk>0&&slot.tp1
+    ?'Profit TP1 <b style="color:var(--green)">+Rp'+Math.round(potTp1).toLocaleString('id-ID')+'</b>'+
+      (slot.tp2?' &nbsp;|&nbsp; TP2 <b style="color:var(--green)">+Rp'+Math.round(potTp2).toLocaleString('id-ID')+'</b>':'')+
+      ' &nbsp;|&nbsp; Max Rugi <b style="color:var(--red)">-Rp'+Math.round(Math.abs(maxRugi)).toLocaleString('id-ID')+'</b> <span style="color:var(--text-muted)">('+slot.lot+' lot)</span>'
+    :'Isi TP1 untuk kalkulasi potensi profit';
+
+  el.innerHTML=
+    '<div class="analysis-row"><span class="analysis-icon">&#x1F4CD;</span><span class="analysis-text">'+posisi+'</span></div>'+
+    '<div class="analysis-row"><span class="analysis-icon">&#x2696;</span><span class="analysis-text">'+rrLine+'</span></div>'+
+    '<div class="analysis-row"><span class="analysis-icon">&#x1F4B0;</span><span class="analysis-text">'+potLine+'</span></div>'+
+    '<div class="analysis-row"><span class="analysis-icon">&#x1F3AF;</span><span class="analysis-text">'+aksi+'</span></div>'+
+    (ihsgCtx?'<div class="analysis-row"><span class="analysis-icon">&#x1F4C8;</span><span class="analysis-text">Kondisi Market:'+ihsgCtx+'</span></div>':'')+
+    '<hr class="analysis-divider">'+
+    '<div class="analysis-conclusion">&#x1F4CB; '+kesimpulan+'</div>';
+}
+
+// ============================================================
+// ANALISIS SEMUA
+// ============================================================
+var DEMO_MODE = location.pathname === '/demo';
+var DEMO_MAX  = 2;
+var DEMO_KEY  = 'kenz_demo_count';
+
+function demoCheck() {
+  if (!DEMO_MODE) return true;
+  var count = parseInt(localStorage.getItem(DEMO_KEY) || '0');
+  if (count >= DEMO_MAX) {
+    document.getElementById('demoPopup').style.display = 'flex';
+    return false;
+  }
+  var newCount = count + 1;
+  localStorage.setItem(DEMO_KEY, String(newCount));
+  updateDemoBanner(newCount);
+  if (newCount >= DEMO_MAX) {
+    setTimeout(function(){
+      document.getElementById('demoPopup').style.display = 'flex';
+    }, 900);
+  }
+  return true;
+}
+
+function updateDemoBanner(count) {
+  var sisa = Math.max(0, DEMO_MAX - count);
+  var el = document.getElementById('headerUser');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--yellow);font-weight:700">DEMO</span>'
+    + ' &nbsp;|&nbsp; Sisa: <strong style="color:'+(sisa===0?'var(--red)':'var(--accent)')+'">'+sisa+'x</strong> percobaan';
+}
+
+function analisisSemua(){
+  if(!demoCheck()) return;
+  var panel=document.getElementById('summaryPanel');
+  var statEl=document.getElementById('summaryStats');
+  var listEl=document.getElementById('summaryList');
+  var totalModal=0,totalRugi=0,totalProfit=0;
+  var counts={go:0,skip:0,tipis:0,slhit:0,wait:0};
+  var items=[];
+
+  slots.forEach(function(slot,si){
+    if(!slot.ticker) return;
+    var stock=getStock(slot.ticker);
+    var price=slot.mode==='auto'?(livePrices[slot.ticker]&&!livePrices[slot.ticker].error?livePrices[slot.ticker].last:null):slot.manualPrice||null;
+    if(!price||!slot.sl||!slot.entryLow||!slot.entryHigh){
+      counts.wait++;items.push({stock:stock,price:price,verdict:'DATA BELUM LENGKAP',cls:'wait',rrTp1:0});return;
+    }
+    var risk=price-slot.sl,lotVal=slot.lot*100;
+    var rrTp1=risk>0&&slot.tp1?(slot.tp1-price)/risk:0;
+    var verdict,cls;
+    if(price<slot.sl){
+      verdict='SL HIT'; cls='slhit'; counts.slhit++;
+    } else if(price>=slot.entryLow&&price<=slot.entryHigh){
+      if(slot.tp1&&rrTp1>=2){verdict='GO TRADE'; cls='go'; counts.go++;totalModal+=price*lotVal;totalRugi+=risk*lotVal;totalProfit+=(slot.tp1-price)*lotVal;}
+      else                  {verdict='TIPIS';    cls='tipis';counts.tipis++;}
+    } else if(price>slot.entryHigh){
+      if(slot.tp1&&price>=slot.tp1){verdict='TP1 TERCAPAI';cls='go';counts.go++;}
+      else                         {verdict='SKIP';        cls='skip';counts.skip++;}
+    } else {
+      verdict='BELUM ENTRY'; cls='wait'; counts.wait++;
+    }
+    items.push({stock:stock,price:price,verdict:verdict,cls:cls,rrTp1:rrTp1});
+  });
+
+  statEl.innerHTML=
+    statBox('GO TRADE',counts.go,'accent')+statBox('SKIP',counts.skip,'red')+
+    statBox('TIPIS',counts.tipis,'')+
+    statBox('Total Modal','Rp'+Math.abs(totalModal).toLocaleString('id-ID'),'accent')+
+    statBox('Max Rugi','-Rp'+Math.abs(totalRugi).toLocaleString('id-ID'),'red')+
+    statBox('Target TP1','+Rp'+totalProfit.toLocaleString('id-ID'),'green');
+
+  listEl.innerHTML=items.map(function(it){
+    return '<div class="summary-item">'+
+      '<div class="summary-item-left">'+
+        '<div class="summary-verdict-dot dot-'+it.cls+'"></div>'+
+        '<strong>'+it.stock.t+'</strong>'+
+        '<span style="color:var(--text-muted)">'+it.stock.n+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:.75rem;align-items:center">'+
+        '<span style="color:var(--text-muted);font-size:.72rem">'+(it.price?it.price.toLocaleString('id-ID'):'-')+'</span>'+
+        '<span style="font-size:.7rem;color:var(--text-muted)">R:R '+(it.rrTp1?'1:'+it.rrTp1.toFixed(2):'-')+'</span>'+
+        '<span style="font-weight:700;font-size:.78rem">'+it.verdict+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var modal=document.getElementById('modalOverlay');
+  modal.style.display='flex';
+}
+
+function tutupModal(){
+  document.getElementById('modalOverlay').style.display='none';
+}
+
+function statBox(l,v,c){return '<div class="stat-box"><div class="stat-label">'+l+'</div><div class="stat-val '+c+'">'+v+'</div></div>';}
+
+// ============================================================
+// SALIN RINGKASAN
+// ============================================================
+function salinRingkasan(){
+  var badge=document.getElementById('marketBadge').textContent.trim();
+  var ihsg=document.getElementById('ihsgVal').value;
+  var lines=['=== BEI TRADING DASHBOARD | KenzProject ==='];
+  lines.push('Tanggal: '+new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+  lines.push('Jam WIB: '+document.getElementById('clock').textContent.replace(/<[^>]+>/g,'').trim());
+  lines.push('');lines.push('--- KONDISI MARKET ---');
+  if(ihsg) lines.push('IHSG: '+parseFloat(ihsg).toLocaleString('id-ID'));
+  lines.push('Status: '+badge);
+  lines.push('');lines.push('--- ANALISIS SAHAM ---');
+  slots.forEach(function(slot,si){
+    if(!slot.ticker) return;
+    var stock=getStock(slot.ticker);
+    var price=slot.mode==='auto'?(livePrices[slot.ticker]&&!livePrices[slot.ticker].error?livePrices[slot.ticker].last:null):slot.manualPrice||null;
+    var vEl=document.getElementById('verdict-'+si);
+    var vTxt=vEl?vEl.querySelector('span').textContent:'-';
+    lines.push('');
+    lines.push('['+stock.t+'] '+stock.n+' ('+stock.s+')');
+    lines.push('  Harga: '+(price?price.toLocaleString('id-ID'):'N/A')+' ['+slot.mode.toUpperCase()+']');
+    lines.push('  Entry: '+slot.entryLow+'-'+slot.entryHigh+' | SL: '+slot.sl+' | TP1: '+slot.tp1+' | TP2: '+slot.tp2);
+    if(price&&slot.sl){var r=price-slot.sl;lines.push('  R:R TP1: 1:'+(r>0?((slot.tp1-price)/r).toFixed(2):'0')+' | Lot: '+slot.lot);}
+    lines.push('  Verdict: '+vTxt.replace(/[^\w\s:]/g,'').trim());
+  });
+  lines.push('');lines.push('--- END OF REPORT ---');
+  lines.push('Generated by KenzProject | BEI Trading Dashboard | Data Real-time');
+  var teks=lines.join('\n');
+  function feedback(){
+    var btn=document.getElementById('salinBtn')||document.querySelector('[onclick="salinRingkasan()"]');
+    if(btn){var o=btn.innerHTML;btn.innerHTML='&#x2714; Tersalin!';btn.style.color='var(--green)';setTimeout(function(){btn.innerHTML=o;btn.style.color='';},2000);}
+  }
+  // Coba clipboard API, fallback ke textarea execCommand
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(teks).then(feedback).catch(function(){fallbackCopy(teks);});
+  } else { fallbackCopy(teks); }
+}
+
+function fallbackCopy(teks){
+  var ta=document.createElement('textarea');
+  ta.value=teks; ta.style.cssText='position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{
+    document.execCommand('copy');
+    var btn=document.getElementById('salinBtn');
+    if(btn){var o=btn.innerHTML;btn.innerHTML='&#x2714; Tersalin!';btn.style.color='var(--green)';setTimeout(function(){btn.innerHTML=o;btn.style.color='';},2000);}
+  }catch(e){alert('Salin manual:\n\n'+teks.substring(0,300)+'...');}
+  document.body.removeChild(ta);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function logout(){
+  await fetch('/api/auth/logout',{method:'POST'});
+  location.href='/login';
+}
+
+(async function(){
+  // Mode demo: skip auth, tampilkan banner
+  if(DEMO_MODE){
+    updateDemoBanner(parseInt(localStorage.getItem(DEMO_KEY)||'0'));
+    renderAllCards();
+    fetchPrices();
+    fetchGlobal();
+    document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
+    return;
+  }
+  try {
+    var r=await fetch('/api/auth/me');
+    if(!r.ok){ location.href='/login'; return; }
+    var me=await r.json();
+    var el=document.getElementById('headerUser');
+    if(el) el.textContent=me.name;
+    // Tampilkan link admin/dev jika punya akses
+    if(me.role==='admin'||me.role==='developer'){
+      var adminBtn=document.createElement('a');
+      adminBtn.href='/admin'; adminBtn.className='btn btn-ghost';
+      adminBtn.style.fontSize='.75rem'; adminBtn.textContent='Admin';
+      document.getElementById('headerUser').after(adminBtn);
+    }
+    if(me.role==='developer'){
+      var devBtn=document.createElement('a');
+      devBtn.href='/developer'; devBtn.className='btn btn-ghost';
+      devBtn.style.fontSize='.75rem'; devBtn.textContent='Dev';
+      document.getElementById('headerUser').after(devBtn);
+    }
+  } catch(e){ location.href='/login'; return; }
+  renderAllCards();
+  fetchPrices();
+  fetchGlobal();
+  document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
+})();
+</script>
+</body>
+</html>

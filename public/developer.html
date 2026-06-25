@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Panel | KenzProject</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .dev-wrap { max-width: 1000px; margin: 0 auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .page-title { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: .6rem; }
+    .dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media(max-width:700px){ .dev-grid { grid-template-columns: 1fr; } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+    .panel-title { font-size: .78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: .9rem; display: flex; align-items: center; gap: .4rem; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: .8rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); }
+    .info-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .info-val.ok  { color: var(--green); }
+    .info-val.warn{ color: var(--yellow); }
+    .info-val.err { color: var(--red); }
+    .role-badge { font-size: .65rem; font-weight: 800; padding: .2rem .55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .badge-admin { background: rgba(234,179,8,.15); color: #fbbf24; border: 1px solid rgba(234,179,8,.3); }
+    .badge-dev   { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.3); }
+    .badge-user  { background: rgba(34,197,94,.12);  color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th { text-align: left; font-size: .68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .55rem .6rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .btn-sm { font-size: .72rem; padding: .3rem .65rem; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; transition: background .15s; }
+    .btn-edit { background: rgba(99,102,241,.15); color: #818cf8; }
+    .btn-edit:hover { background: rgba(99,102,241,.3); }
+    .btn-del { background: rgba(239,68,68,.12); color: var(--red); }
+    .btn-del:hover { background: rgba(239,68,68,.25); }
+    .btn-warn { background: rgba(249,115,22,.12); color: #fb923c; border: 1px solid rgba(249,115,22,.25); padding: .45rem .9rem; border-radius: 6px; font-size: .8rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+    .btn-warn:hover { background: rgba(249,115,22,.22); }
+    .btn-primary { background: var(--accent); color: #fff; border: none; padding: .5rem 1rem; border-radius: 6px; font-size: .8rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .form-field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .75rem; }
+    .form-field label { font-size: .7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .form-field input, .form-field select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); padding: .45rem .7rem; font-size: .85rem; outline: none; width: 100%;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: .65rem 1.1rem; border-radius: 8px; font-size: .8rem; font-weight: 700; display: none; z-index: 999; }
+    .toast.ok  { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); display: block; }
+    .toast.err { background: rgba(239,68,68,.15); color: var(--red);   border: 1px solid rgba(239,68,68,.3); display: block; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:500; align-items:center; justify-content:center; padding:1rem; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; max-width:440px; width:100%; }
+    .modal-title { font-size:.9rem; font-weight:800; margin-bottom:1.25rem; }
+    .modal-actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1.25rem; }
+    .nav-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .nav-tab { padding: .4rem .9rem; border-radius: 6px; font-size: .78rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-muted); transition: all .15s; }
+    .nav-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tab-content { display: none; } .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <span class="logo">📈 KenzProject</span>
+    <span style="font-size:.7rem;background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.3);padding:.15rem .5rem;border-radius:4px;font-weight:800">DEVELOPER</span>
+  </div>
+  <div class="header-right">
+    <span id="userInfo" style="font-size:.78rem;color:var(--text-muted)"></span>
+    <a href="/" class="btn btn-ghost" style="font-size:.78rem">Dashboard</a>
+    <a href="/admin" class="btn btn-ghost" style="font-size:.78rem">Admin</a>
+    <button class="btn btn-ghost" style="font-size:.78rem" onclick="logout()">Keluar</button>
+  </div>
+</header>
+
+<div class="dev-wrap">
+  <div class="page-title">⚙️ Developer Panel</div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('system')">🖥️ System Info</button>
+    <button class="nav-tab" onclick="switchTab('cache')">⚡ Cache</button>
+    <button class="nav-tab" onclick="switchTab('users')">👥 Users</button>
+  </div>
+
+  <!-- Tab: System Info -->
+  <div class="tab-content active" id="tab-system">
+    <div class="dev-grid">
+      <div class="panel">
+        <div class="panel-title">🖥️ Server</div>
+        <div id="sysInfo"><div style="color:var(--text-muted);font-size:.8rem">Memuat...</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">💾 Memory</div>
+        <div id="memInfo"><div style="color:var(--text-muted);font-size:.8rem">Memuat...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Cache -->
+  <div class="tab-content" id="tab-cache">
+    <div class="panel">
+      <div class="panel-title">⚡ Status Cache & Session</div>
+      <div id="cacheInfo"><div style="color:var(--text-muted);font-size:.8rem">Memuat...</div></div>
+      <div style="margin-top:1rem">
+        <button class="btn-warn" onclick="clearCache()">🗑️ Reset Cache & Session Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Users -->
+  <div class="tab-content" id="tab-users">
+    <div class="panel" style="margin-bottom:1rem">
+      <div class="panel-title">➕ Tambah User</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-field"><label>Username</label><input type="text" id="newUsername" placeholder="username"></div>
+        <div class="form-field"><label>Nama</label><input type="text" id="newName" placeholder="Nama lengkap"></div>
+        <div class="form-field"><label>Password</label><input type="password" id="newPassword" placeholder="Min. 6 karakter"></div>
+        <div class="form-field"><label>Role</label>
+          <select id="newRole"><option value="user">User</option><option value="admin">Admin</option><option value="developer">Developer</option></select>
+        </div>
+      </div>
+      <div style="margin-top:.75rem"><button class="btn-primary" onclick="tambahUser()">+ Tambah</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">📋 Daftar User</div>
+      <table>
+        <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead>
+        <tbody id="userTable"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal edit -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit User</div>
+    <input type="hidden" id="editId">
+    <div class="form-field"><label>Nama</label><input type="text" id="editName"></div>
+    <div class="form-field"><label>Role</label>
+      <select id="editRole"><option value="user">User</option><option value="admin">Admin</option><option value="developer">Developer</option></select>
+    </div>
+    <div class="form-field"><label>Password Baru</label><input type="password" id="editPassword" placeholder="Kosongkan jika tidak diubah"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn-primary" onclick="simpanEdit()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var me = null;
+
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if(name==='system'||name==='cache') loadSystem();
+  if(name==='users') loadUsers();
+}
+
+function fmt(bytes){ return (bytes/1024/1024).toFixed(1)+' MB'; }
+function fmtUptime(s){ var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return h+'j '+m+'m '+sec+'d'; }
+function fmtAge(ms){ if(ms>3600000) return '>1 jam'; if(ms>60000) return Math.floor(ms/60000)+'m'; return Math.floor(ms/1000)+'d'; }
+
+async function loadSystem(){
+  var r = await fetch('/api/dev/system');
+  if(!r.ok) return;
+  var d = await r.json();
+  document.getElementById('sysInfo').innerHTML =
+    row('Uptime', fmtUptime(d.uptime), 'ok')+
+    row('Node.js', d.nodeVersion, '')+
+    row('Total User', d.users+' akun', '');
+  document.getElementById('memInfo').innerHTML =
+    row('Heap Used', fmt(d.memory.heapUsed), d.memory.heapUsed>200*1024*1024?'warn':'ok')+
+    row('Heap Total', fmt(d.memory.heapTotal), '')+
+    row('RSS', fmt(d.memory.rss), '');
+  document.getElementById('cacheInfo').innerHTML =
+    row('Yahoo Session', d.yhSession.active?'Aktif ('+fmtAge(d.yhSession.age)+')':'Tidak aktif', d.yhSession.active?'ok':'err')+
+    row('Price Cache', d.priceCache.size+' ticker ('+fmtAge(d.priceCache.age)+')', d.priceCache.size>0?'ok':'warn')+
+    row('Global Cache', d.globalCache.hasData?'Ada data ('+fmtAge(d.globalCache.age)+')':'Kosong', d.globalCache.hasData?'ok':'warn');
+}
+
+function row(label, val, cls){
+  return '<div class="info-row"><span class="info-label">'+label+'</span><span class="info-val '+(cls||'")>'+val+'</span></div>';
+}
+
+async function clearCache(){
+  if(!confirm('Reset semua cache dan session data?')) return;
+  var r = await fetch('/api/dev/cache/clear',{method:'POST'});
+  var d = await r.json();
+  showToast(d.message||'Cache direset','ok');
+  setTimeout(loadSystem, 500);
+}
+
+async function loadUsers(){
+  var r = await fetch('/api/users');
+  if(!r.ok){ showToast('Gagal memuat user','err'); return; }
+  var users = await r.json();
+  var html = '';
+  users.forEach(function(u){
+    var bc = u.role==='developer'?'badge-dev':u.role==='admin'?'badge-admin':'badge-user';
+    var isMe = me && u.id===me.id;
+    html += '<tr>'+
+      '<td><strong>'+u.username+'</strong>'+(isMe?' <span style="font-size:.65rem;color:var(--accent)">(Anda)</span>':'')+'</td>'+
+      '<td>'+u.name+'</td>'+
+      '<td><span class="role-badge '+bc+'">'+u.role+'</span></td>'+
+      '<td style="display:flex;gap:.35rem">'+
+        '<button class="btn-sm btn-edit" onclick="openEdit(\''+u.id+'\',\''+u.name+'\',\''+u.role+'\')">Edit</button>'+
+        (!isMe?'<button class="btn-sm btn-del" onclick="hapusUser(\''+u.id+'\',\''+u.username+'\')">Hapus</button>':'')+
+      '</td>'+
+    '</tr>';
+  });
+  document.getElementById('userTable').innerHTML = html||'<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Belum ada user</td></tr>';
+}
+
+async function tambahUser(){
+  var username=document.getElementById('newUsername').value.trim();
+  var name=document.getElementById('newName').value.trim();
+  var password=document.getElementById('newPassword').value;
+  var role=document.getElementById('newRole').value;
+  if(!username||!name||!password){ showToast('Semua field wajib diisi','err'); return; }
+  if(password.length<6){ showToast('Password minimal 6 karakter','err'); return; }
+  var r=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,name,password,role})});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menambah user','err'); return; }
+  showToast('User ditambahkan','ok');
+  document.getElementById('newUsername').value='';
+  document.getElementById('newName').value='';
+  document.getElementById('newPassword').value='';
+  loadUsers();
+}
+
+function openEdit(id,name,role){
+  document.getElementById('editId').value=id;
+  document.getElementById('editName').value=name;
+  document.getElementById('editRole').value=role;
+  document.getElementById('editPassword').value='';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('editModal').classList.remove('open'); }
+
+async function simpanEdit(){
+  var id=document.getElementById('editId').value;
+  var name=document.getElementById('editName').value.trim();
+  var role=document.getElementById('editRole').value;
+  var password=document.getElementById('editPassword').value;
+  var body={name,role};
+  if(password){ if(password.length<6){ showToast('Password minimal 6 karakter','err'); return; } body.password=password; }
+  var r=await fetch('/api/users/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menyimpan','err'); return; }
+  showToast('User diperbarui','ok'); closeModal(); loadUsers();
+}
+
+async function hapusUser(id,username){
+  if(!confirm('Hapus user "'+username+'"?')) return;
+  var r=await fetch('/api/users/'+id,{method:'DELETE'});
+  var d=await r.json();
+  if(!r.ok){ showToast(d.error||'Gagal menghapus','err'); return; }
+  showToast('User dihapus','ok'); loadUsers();
+}
+
+async function logout(){
+  await fetch('/api/auth/logout',{method:'POST'});
+  location.href='/login';
+}
+
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type;
+  clearTimeout(window._tt); window._tt=setTimeout(function(){ t.className='toast'; },3000);
+}
+
+async function init(){
+  var r=await fetch('/api/auth/me');
+  if(!r.ok){ location.href='/login'; return; }
+  me=await r.json();
+  if(me.role!=='developer'){ location.href='/'; return; }
+  document.getElementById('userInfo').textContent=me.name+' (developer)';
+  loadSystem();
+}
+
+init();
+</script>
+</body>
+</html>
