@@ -325,6 +325,24 @@
     .slot-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
     .slot-empty p { margin-top: .5rem; font-size: .75rem; }
 
+    /* ===== SIDE DRAWER ===== */
+    .side-drawer { position:fixed; inset:0; z-index:600; display:flex; justify-content:flex-end; pointer-events:none; }
+    .side-drawer.open { pointer-events:all; }
+    .drawer-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); opacity:0; transition:opacity .25s; }
+    .side-drawer.open .drawer-overlay { opacity:1; }
+    .drawer-panel { position:relative; width:500px; max-width:96vw; background:var(--bg); border-left:1px solid var(--border); display:flex; flex-direction:column; height:100%; transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); box-shadow:-8px 0 32px rgba(0,0,0,.45); }
+    .side-drawer.open .drawer-panel { transform:translateX(0); }
+    .drawer-head { display:flex; align-items:center; justify-content:space-between; padding:.55rem .8rem; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); gap:.5rem; }
+    .drawer-tabs { display:flex; gap:.25rem; flex:1; }
+    .drawer-tab { background:transparent; border:1px solid transparent; border-radius:6px; padding:.3rem .6rem; font-size:.74rem; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .drawer-tab:hover { color:var(--text); background:var(--surface2); }
+    .drawer-tab.active { background:rgba(99,102,241,.15); border-color:rgba(99,102,241,.3); color:var(--accent); }
+    .drawer-body { flex:1; overflow-y:auto; }
+    .drawer-pane { padding:.85rem; display:none; }
+    .drawer-pane.active { display:block; }
+    .drawer-pane-title { font-size:.8rem; font-weight:800; margin-bottom:.7rem; display:flex; align-items:center; justify-content:space-between; }
+    @media(max-width:520px){ .drawer-panel { width:100vw; max-width:100vw; } }
+
     /* ===== HEATMAP SEKTOR ===== */
     .heatmap-section { max-width:1100px; margin:.5rem auto 0; padding:0 1.25rem; }
     .heatmap-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
@@ -521,7 +539,7 @@
     <button class="btn btn-secondary" onclick="analisisSemua()">&#x26A1; Analisis</button>
     <button class="btn btn-ghost" onclick="salinRingkasan()">&#x1F4CB; Salin</button>
     <button class="btn btn-ghost" id="notifBtn" onclick="toggleNotif()" title="Notifikasi Harga">&#x1F514;<span class="notif-badge" id="alertBadge"></span></button>
-    <button class="btn btn-ghost" style="font-size:.75rem" onclick="openAlerts()" title="Kelola Price Alert">&#x1F6A8; Alert</button>
+    <button class="btn btn-secondary" style="font-size:.75rem" onclick="openDrawer('portfolio')" id="drawerBtn">&#x1F4CB; Saya</button>
     <button class="btn btn-ghost" style="font-size:.75rem;color:var(--red)" onclick="logout()">Keluar</button>
   </div>
 </header>
@@ -663,67 +681,73 @@
   </div>
 </section>
 
-<!-- Portfolio Tracker -->
-<section class="portfolio-section" id="portfolioSection">
-  <div class="portfolio-header">
-    <div class="portfolio-title">&#x1F4BC; Portfolio Tracker <span id="portCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
-    <button class="btn btn-ghost" style="font-size:.72rem" onclick="togglePortForm()">+ Tambah Posisi</button>
-  </div>
-  <div class="port-add-wrap" id="portAddWrap">
-    <div class="port-form-row">
-      <div class="port-field"><label>Ticker</label><input class="port-ticker-input" type="text" id="portTickerInp" placeholder="BBCA" autocomplete="off" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="port-field"><label>Harga Beli</label><input type="number" id="portBuyInp" placeholder="8500"></div>
-      <div class="port-field"><label>Lot</label><input type="number" id="portLotInp" placeholder="10" min="1"></div>
-      <div class="port-field"><label>Tanggal</label><input type="date" id="portDateInp" style="width:130px;font-size:.78rem;padding:.32rem .45rem"></div>
-      <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="portAdd()">Tambah</button>
-      <button class="btn btn-ghost" style="font-size:.75rem;align-self:flex-end" onclick="togglePortForm()">Batal</button>
-    </div>
-  </div>
-  <div id="portSummary" style="display:none" class="port-summary">
-    <div class="port-stat"><div class="port-stat-label">Nilai Investasi</div><div class="port-stat-val" id="portValCost">—</div></div>
-    <div class="port-stat"><div class="port-stat-label">Nilai Sekarang</div><div class="port-stat-val" id="portValNow">—</div></div>
-    <div class="port-stat"><div class="port-stat-label">Total P&amp;L</div><div class="port-stat-val" id="portValPL">—</div></div>
-  </div>
-  <div id="portfolioBody"><div class="port-empty">Belum ada posisi. Klik "+ Tambah Posisi" untuk mulai tracking.</div></div>
-</section>
-
-<!-- Riwayat Analisis -->
-<section class="history-section" id="historySection">
-  <div class="history-toggle" onclick="toggleHistory()" id="historyToggle">
-    <div class="history-toggle-left">&#x1F4D6; Riwayat Analisis <span id="histCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
-    <span class="history-toggle-arrow" id="histArrow">&#x25BC;</span>
-  </div>
-  <div class="history-body" id="historyBody">
-    <div class="history-actions">
-      <button class="btn btn-ghost" style="font-size:.7rem;color:var(--red)" onclick="hapusSemuaRiwayat()">&#x1F5D1; Hapus Semua</button>
-    </div>
-    <div class="history-list" id="historyList">
-      <div class="history-empty">Belum ada riwayat. Klik ⚡ Analisis lalu 💾 Simpan.</div>
-    </div>
-  </div>
-</section>
-
-<!-- Custom Price Alert Modal -->
-<div class="alert-modal" id="alertModal" onclick="if(event.target===this)closeAlerts()">
-  <div class="alert-box">
-    <div class="alert-box-head">
-      <span class="alert-box-title">&#x1F6A8; Custom Price Alert</span>
-      <button class="btn btn-ghost" style="padding:.3rem .6rem;font-size:.8rem" onclick="closeAlerts()">&#x2715;</button>
-    </div>
-    <div class="alert-body">
-      <div class="alert-add-row">
-        <div class="alert-field"><label>Ticker</label><input type="text" id="aTickerInp" placeholder="BBCA" oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="alert-field"><label>Kondisi</label>
-          <select id="aCondInp">
-            <option value="above">&#x2265; Di Atas</option>
-            <option value="below">&#x2264; Di Bawah</option>
-          </select>
-        </div>
-        <div class="alert-field"><label>Harga Target</label><input type="number" id="aPriceInp" placeholder="9000"></div>
-        <div class="alert-field"><label>Label (opsional)</label><input type="text" id="aLabelInp" class="alert-label-inp" placeholder="TP1, SL, dll" style="text-transform:none"></div>
-        <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="alertAdd()">+ Tambah</button>
+<!-- Side Drawer: Portfolio | Riwayat | Alert -->
+<div class="side-drawer" id="sideDrawer">
+  <div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <div class="drawer-tabs">
+        <button class="drawer-tab active" id="dtab-portfolio" onclick="switchTab('portfolio')">&#x1F4BC; Portfolio <span id="portCount" style="font-size:.6rem;font-weight:400"></span></button>
+        <button class="drawer-tab" id="dtab-riwayat" onclick="switchTab('riwayat')">&#x1F4D6; Riwayat <span id="histCount" style="font-size:.6rem;font-weight:400"></span></button>
+        <button class="drawer-tab" id="dtab-alert" onclick="switchTab('alert')">&#x1F6A8; Alert</button>
       </div>
-      <div class="alert-list" id="alertList"><div class="alert-empty">Belum ada alert. Tambahkan di atas.</div></div>
+      <button class="btn btn-ghost" style="padding:.3rem .55rem;font-size:.88rem;flex-shrink:0" onclick="closeDrawer()">&#x2715;</button>
+    </div>
+    <div class="drawer-body">
+
+      <!-- Tab: Portfolio -->
+      <div class="drawer-pane active" id="pane-portfolio">
+        <div class="drawer-pane-title">
+          <span>&#x1F4BC; Portfolio Tracker</span>
+          <button class="btn btn-ghost" style="font-size:.7rem" onclick="togglePortForm()">+ Tambah</button>
+        </div>
+        <div class="port-add-wrap" id="portAddWrap">
+          <div class="port-form-row">
+            <div class="port-field"><label>Ticker</label><input class="port-ticker-input" type="text" id="portTickerInp" placeholder="BBCA" autocomplete="off" oninput="this.value=this.value.toUpperCase()"></div>
+            <div class="port-field"><label>Harga Beli</label><input type="number" id="portBuyInp" placeholder="8500"></div>
+            <div class="port-field"><label>Lot</label><input type="number" id="portLotInp" placeholder="10" min="1"></div>
+            <div class="port-field"><label>Tanggal</label><input type="date" id="portDateInp" style="width:130px;font-size:.78rem;padding:.32rem .45rem"></div>
+            <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="portAdd()">Simpan</button>
+            <button class="btn btn-ghost" style="font-size:.75rem;align-self:flex-end" onclick="togglePortForm()">Batal</button>
+          </div>
+        </div>
+        <div id="portSummary" style="display:none" class="port-summary">
+          <div class="port-stat"><div class="port-stat-label">Nilai Investasi</div><div class="port-stat-val" id="portValCost">—</div></div>
+          <div class="port-stat"><div class="port-stat-label">Nilai Sekarang</div><div class="port-stat-val" id="portValNow">—</div></div>
+          <div class="port-stat"><div class="port-stat-label">Total P&amp;L</div><div class="port-stat-val" id="portValPL">—</div></div>
+        </div>
+        <div id="portfolioBody"><div class="port-empty">Belum ada posisi. Klik "+ Tambah" untuk mulai tracking.</div></div>
+      </div>
+
+      <!-- Tab: Riwayat -->
+      <div class="drawer-pane" id="pane-riwayat">
+        <div class="drawer-pane-title">
+          <span>&#x1F4D6; Riwayat Analisis</span>
+          <button class="btn btn-ghost" style="font-size:.7rem;color:var(--red)" onclick="hapusSemuaRiwayat()">&#x1F5D1; Hapus Semua</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">Belum ada riwayat. Klik &#x26A1; Analisis lalu &#x1F4BE; Simpan.</div>
+        </div>
+      </div>
+
+      <!-- Tab: Alert -->
+      <div class="drawer-pane" id="pane-alert">
+        <div class="drawer-pane-title">&#x1F6A8; Custom Price Alert</div>
+        <div class="alert-add-row">
+          <div class="alert-field"><label>Ticker</label><input type="text" id="aTickerInp" placeholder="BBCA" oninput="this.value=this.value.toUpperCase()"></div>
+          <div class="alert-field"><label>Kondisi</label>
+            <select id="aCondInp">
+              <option value="above">&#x2265; Di Atas</option>
+              <option value="below">&#x2264; Di Bawah</option>
+            </select>
+          </div>
+          <div class="alert-field"><label>Harga Target</label><input type="number" id="aPriceInp" placeholder="9000"></div>
+          <div class="alert-field"><label>Label (opsional)</label><input type="text" id="aLabelInp" class="alert-label-inp" placeholder="TP1, SL..." style="text-transform:none"></div>
+          <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="alertAdd()">+ Tambah</button>
+        </div>
+        <div class="alert-list" id="alertList"><div class="alert-empty">Belum ada alert. Tambahkan di atas.</div></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1994,8 +2018,23 @@ var alertedIds   = {};
 function alertLoad() { try { return JSON.parse(localStorage.getItem(ALERT_KEY) || '[]'); } catch { return []; } }
 function alertSave(list) { localStorage.setItem(ALERT_KEY, JSON.stringify(list)); }
 
-function openAlerts()  { document.getElementById('alertModal').classList.add('open'); alertRender(); }
-function closeAlerts() { document.getElementById('alertModal').classList.remove('open'); }
+function openDrawer(tab) {
+  document.getElementById('sideDrawer').classList.add('open');
+  switchTab(tab || 'portfolio');
+}
+function closeDrawer() {
+  document.getElementById('sideDrawer').classList.remove('open');
+}
+function switchTab(tab) {
+  ['portfolio','riwayat','alert'].forEach(function(t) {
+    document.getElementById('dtab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('pane-'+t).classList.toggle('active', t===tab);
+  });
+}
+// Backward compat
+function openAlerts()  { openDrawer('alert'); }
+function closeAlerts() { closeDrawer(); }
+function toggleHistory() { openDrawer('riwayat'); }
 
 function alertAdd() {
   var ticker = document.getElementById('aTickerInp').value.trim().toUpperCase();
@@ -2401,6 +2440,12 @@ function tutupChart() {
   document.getElementById('chartContainer').innerHTML = '';
 }
 
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    if (document.getElementById('sideDrawer').classList.contains('open')) closeDrawer();
+  }
+});
+
 async function logout(){
   await fetch('/api/auth/logout',{method:'POST'});
   location.href='/login';
@@ -2421,10 +2466,9 @@ async function logout(){
     fetchGlobal();
     fetchCrypto();
     document.getElementById('watchlistSection').style.display='none';
-    document.getElementById('historySection').style.display='none';
     document.getElementById('screenerSection').style.display='none';
     document.getElementById('heatmapSection').style.display='none';
-    document.getElementById('portfolioSection').style.display='none';
+    document.getElementById('drawerBtn').style.display='none';
     document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
     return;
   }
