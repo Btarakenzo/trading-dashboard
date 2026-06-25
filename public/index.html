@@ -324,214 +324,7 @@
 // ============================================================
 // IDX STOCKS DATABASE
 // ============================================================
-var IDX_STOCKS = [
-  // Perbankan
-  {t:'BBCA',n:'Bank Central Asia',s:'Perbankan'},
-  {t:'BBRI',n:'Bank Rakyat Indonesia',s:'Perbankan'},
-  {t:'BMRI',n:'Bank Mandiri',s:'Perbankan'},
-  {t:'BBNI',n:'Bank Negara Indonesia',s:'Perbankan'},
-  {t:'BRIS',n:'Bank Syariah Indonesia',s:'Perbankan'},
-  {t:'BBTN',n:'Bank Tabungan Negara',s:'Perbankan'},
-  {t:'BNGA',n:'Bank CIMB Niaga',s:'Perbankan'},
-  {t:'BJBR',n:'Bank BJB',s:'Perbankan'},
-  {t:'BJTM',n:'Bank Jatim',s:'Perbankan'},
-  {t:'BDMN',n:'Bank Danamon',s:'Perbankan'},
-  {t:'BTPS',n:'Bank BTPN Syariah',s:'Perbankan'},
-  {t:'NISP',n:'Bank OCBC NISP',s:'Perbankan'},
-  {t:'MEGA',n:'Bank Mega',s:'Perbankan'},
-  {t:'ARTO',n:'Bank Jago',s:'Perbankan'},
-  {t:'PNBN',n:'Bank Pan Indonesia',s:'Perbankan'},
-  {t:'BNII',n:'Bank Maybank Indonesia',s:'Perbankan'},
-  {t:'MAYA',n:'Bank Mayapada',s:'Perbankan'},
-  {t:'NOBU',n:'Bank National Nobu',s:'Perbankan'},
-  {t:'BBYB',n:'Bank Neo Commerce',s:'Perbankan'},
-  {t:'AGRO',n:'Bank Rakyat Indonesia Agroniaga',s:'Perbankan'},
-  {t:'MCOR',n:'Bank China Construction Bank',s:'Perbankan'},
-  {t:'SDRA',n:'Bank Woori Saudara',s:'Perbankan'},
-  {t:'BACA',n:'Bank Capital Indonesia',s:'Perbankan'},
-  {t:'INPC',n:'Bank Artha Graha',s:'Perbankan'},
-  {t:'DNAR',n:'Bank Oke Indonesia',s:'Perbankan'},
-  {t:'BGTG',n:'Bank Ganesha',s:'Perbankan'},
-  {t:'BSIM',n:'Sinarmas Multi Artha',s:'Perbankan'},
-  // Telekomunikasi
-  {t:'TLKM',n:'Telkom Indonesia',s:'Telekomunikasi'},
-  {t:'EXCL',n:'XL Axiata',s:'Telekomunikasi'},
-  {t:'ISAT',n:'Indosat Ooredoo Hutchison',s:'Telekomunikasi'},
-  {t:'FREN',n:'Smartfren Telecom',s:'Telekomunikasi'},
-  {t:'TOWR',n:'Sarana Menara Nusantara',s:'Telekomunikasi'},
-  {t:'TBIG',n:'Tower Bersama Infrastructure',s:'Telekomunikasi'},
-  {t:'SUPR',n:'Solusi Tunas Pratama',s:'Telekomunikasi'},
-  {t:'BALI',n:'Bali Towerindo Sentra',s:'Telekomunikasi'},
-  {t:'WIFI',n:'Solusi Sinergi Digital',s:'Telekomunikasi'},
-  // Consumer Goods
-  {t:'UNVR',n:'Unilever Indonesia',s:'Consumer Goods'},
-  {t:'MYOR',n:'Mayora Indah',s:'Consumer Goods'},
-  {t:'ICBP',n:'Indofood CBP',s:'Consumer Goods'},
-  {t:'INDF',n:'Indofood Sukses Makmur',s:'Consumer Goods'},
-  {t:'GGRM',n:'Gudang Garam',s:'Consumer Goods'},
-  {t:'HMSP',n:'HM Sampoerna',s:'Consumer Goods'},
-  {t:'ULTJ',n:'Ultra Jaya Milk',s:'Consumer Goods'},
-  {t:'CLEO',n:'Sariguna Primatirta',s:'Consumer Goods'},
-  {t:'ROTI',n:'Nippon Indosari Corpindo',s:'Consumer Goods'},
-  {t:'DLTA',n:'Delta Djakarta',s:'Consumer Goods'},
-  {t:'MLBI',n:'Multi Bintang Indonesia',s:'Consumer Goods'},
-  {t:'SIDO',n:'Sido Muncul',s:'Consumer Goods'},
-  {t:'ADES',n:'Akasha Wira International',s:'Consumer Goods'},
-  {t:'SKLT',n:'Sekar Laut',s:'Consumer Goods'},
-  {t:'HOKI',n:'Buyung Poetra Sembada',s:'Consumer Goods'},
-  {t:'SKBM',n:'Sekar Bumi',s:'Consumer Goods'},
-  {t:'CAMP',n:'Campina Ice Cream',s:'Consumer Goods'},
-  {t:'KEJU',n:'Mulia Boga Raya',s:'Consumer Goods'},
-  {t:'DMND',n:'Diamond Food Indonesia',s:'Consumer Goods'},
-  {t:'GOOD',n:'Garudafood Putra Putri Jaya',s:'Consumer Goods'},
-  {t:'CINT',n:'Chitose Internasional',s:'Consumer Goods'},
-  // Healthcare & Farmasi
-  {t:'KLBF',n:'Kalbe Farma',s:'Healthcare'},
-  {t:'MIKA',n:'Mitra Keluarga Karyasehat',s:'Healthcare'},
-  {t:'KAEF',n:'Kimia Farma',s:'Healthcare'},
-  {t:'HEAL',n:'Medikaloka Hermina',s:'Healthcare'},
-  {t:'SILO',n:'Siloam International Hospitals',s:'Healthcare'},
-  {t:'SOHO',n:'Soho Global Health',s:'Healthcare'},
-  {t:'DVLA',n:'Darya-Varia Laboratoria',s:'Healthcare'},
-  {t:'TSPC',n:'Tempo Scan Pacific',s:'Healthcare'},
-  {t:'MERK',n:'Merck Indonesia',s:'Healthcare'},
-  {t:'INAF',n:'Indofarma',s:'Healthcare'},
-  {t:'PYFA',n:'Pyridam Farma',s:'Healthcare'},
-  {t:'PEHA',n:'Phapros',s:'Healthcare'},
-  {t:'SAME',n:'Sarana Meditama Metropolitan',s:'Healthcare'},
-  {t:'IRRA',n:'Itama Ranoraya',s:'Healthcare'},
-  // Energi
-  {t:'PGAS',n:'Perusahaan Gas Negara',s:'Energi'},
-  {t:'ADRO',n:'Adaro Energy Indonesia',s:'Energi'},
-  {t:'AADI',n:'Adaro Andalan Indonesia',s:'Energi'},
-  {t:'PTBA',n:'Bukit Asam',s:'Energi'},
-  {t:'ITMG',n:'Indo Tambangraya Megah',s:'Energi'},
-  {t:'HRUM',n:'Harum Energy',s:'Energi'},
-  {t:'MEDC',n:'Medco Energi',s:'Energi'},
-  {t:'ELSA',n:'Elnusa',s:'Energi'},
-  {t:'AKRA',n:'AKR Corporindo',s:'Energi'},
-  {t:'PGEO',n:'Pertamina Geothermal Energy',s:'Energi'},
-  {t:'TOBA',n:'TBS Energi Utama',s:'Energi'},
-  {t:'GEMS',n:'Golden Energy Mines',s:'Energi'},
-  {t:'MBAP',n:'Mitrabara Adiperdana',s:'Energi'},
-  {t:'MYOH',n:'Samindo Resources',s:'Energi'},
-  {t:'PTRO',n:'Petrosea',s:'Energi'},
-  {t:'ESSA',n:'Esse',s:'Energi'},
-  {t:'INDY',n:'Indika Energy',s:'Energi'},
-  {t:'DEWA',n:'Darma Henwa',s:'Energi'},
-  {t:'KKGI',n:'Resource Alam Indonesia',s:'Energi'},
-  {t:'RUIS',n:'Radiant Utama Interinsco',s:'Energi'},
-  // Pertambangan
-  {t:'ANTM',n:'Aneka Tambang',s:'Pertambangan'},
-  {t:'INCO',n:'Vale Indonesia',s:'Pertambangan'},
-  {t:'MDKA',n:'Merdeka Copper Gold',s:'Pertambangan'},
-  {t:'BUMI',n:'Bumi Resources',s:'Pertambangan'},
-  {t:'TINS',n:'Timah',s:'Pertambangan'},
-  {t:'PSAB',n:'J Resources Asia Pasifik',s:'Pertambangan'},
-  {t:'SMMT',n:'Golden Eagle Energy',s:'Pertambangan'},
-  {t:'DOID',n:'Delta Dunia Makmur',s:'Pertambangan'},
-  {t:'BOSS',n:'Borneo Olah Sarana Sukses',s:'Pertambangan'},
-  {t:'PURE',n:'Trinitan Metals and Minerals',s:'Pertambangan'},
-  {t:'NCKL',n:'Trimegah Bangun Persada',s:'Pertambangan'},
-  // Properti
-  {t:'BSDE',n:'Bumi Serpong Damai',s:'Properti'},
-  {t:'SMRA',n:'Summarecon Agung',s:'Properti'},
-  {t:'CTRA',n:'Ciputra Development',s:'Properti'},
-  {t:'PWON',n:'Pakuwon Jati',s:'Properti'},
-  {t:'LPKR',n:'Lippo Karawaci',s:'Properti'},
-  {t:'ASRI',n:'Alam Sutera Realty',s:'Properti'},
-  {t:'DMAS',n:'Puradelta Lestari',s:'Properti'},
-  {t:'KIJA',n:'Kawasan Industri Jababeka',s:'Properti'},
-  {t:'MDLN',n:'Modernland Realty',s:'Properti'},
-  {t:'APLN',n:'Agung Podomoro Land',s:'Properti'},
-  {t:'JRPT',n:'Jaya Real Property',s:'Properti'},
-  {t:'MMLP',n:'Mega Manunggal Property',s:'Properti'},
-  {t:'GPRA',n:'Perdana Gapuraprima',s:'Properti'},
-  {t:'NIRO',n:'Nirvana Development',s:'Properti'},
-  {t:'PLIN',n:'Plaza Indonesia Realty',s:'Properti'},
-  // Infrastruktur & Konstruksi
-  {t:'WIKA',n:'Wijaya Karya',s:'Infrastruktur'},
-  {t:'WSKT',n:'Waskita Karya',s:'Infrastruktur'},
-  {t:'PTPP',n:'PP Persero',s:'Infrastruktur'},
-  {t:'JSMR',n:'Jasa Marga',s:'Infrastruktur'},
-  {t:'ADHI',n:'Adhi Karya',s:'Infrastruktur'},
-  {t:'WTON',n:'Wijaya Karya Beton',s:'Infrastruktur'},
-  {t:'NRCA',n:'Nusa Raya Cipta',s:'Infrastruktur'},
-  {t:'TOTL',n:'Total Bangun Persada',s:'Infrastruktur'},
-  {t:'WEGE',n:'Wijaya Karya Gedung',s:'Infrastruktur'},
-  {t:'ACST',n:'Acset Indonusa',s:'Infrastruktur'},
-  // Otomotif
-  {t:'ASII',n:'Astra International',s:'Otomotif'},
-  {t:'AUTO',n:'Astra Otoparts',s:'Otomotif'},
-  {t:'SMSM',n:'Selamat Sempurna',s:'Otomotif'},
-  {t:'GJTL',n:'Gajah Tunggal',s:'Otomotif'},
-  {t:'INDS',n:'Indospring',s:'Otomotif'},
-  {t:'DRMA',n:'Dharma Polimetal',s:'Otomotif'},
-  {t:'BOLT',n:'Garuda Metalindo',s:'Otomotif'},
-  {t:'NIPS',n:'Nippress',s:'Otomotif'},
-  // Retail
-  {t:'MAPI',n:'Mitra Adiperkasa',s:'Retail'},
-  {t:'ACES',n:'Ace Hardware Indonesia',s:'Retail'},
-  {t:'AMRT',n:'Sumber Alfaria Trijaya',s:'Retail'},
-  {t:'LPPF',n:'Matahari Department Store',s:'Retail'},
-  {t:'RALS',n:'Ramayana Lestari Sentosa',s:'Retail'},
-  {t:'MIDI',n:'Midi Utama Indonesia',s:'Retail'},
-  {t:'ERAA',n:'Erajaya Swasembada',s:'Retail'},
-  {t:'HERO',n:'Hero Supermarket',s:'Retail'},
-  {t:'MPPA',n:'Matahari Putra Prima',s:'Retail'},
-  // Perkebunan
-  {t:'AALI',n:'Astra Agro Lestari',s:'Perkebunan'},
-  {t:'LSIP',n:'PP London Sumatra',s:'Perkebunan'},
-  {t:'SIMP',n:'Salim Ivomas Pratama',s:'Perkebunan'},
-  {t:'SSMS',n:'Sawit Sumbermas Sarana',s:'Perkebunan'},
-  {t:'TAPG',n:'Triputra Agro Persada',s:'Perkebunan'},
-  {t:'DSNG',n:'Dharma Satya Nusantara',s:'Perkebunan'},
-  {t:'BWPT',n:'Eagle High Plantations',s:'Perkebunan'},
-  {t:'GZCO',n:'Gozco Plantations',s:'Perkebunan'},
-  // Media & Teknologi
-  {t:'SCMA',n:'Surya Citra Media',s:'Media & Teknologi'},
-  {t:'MNCN',n:'Media Nusantara Citra',s:'Media & Teknologi'},
-  {t:'EMTK',n:'Elang Mahkota Teknologi',s:'Media & Teknologi'},
-  {t:'GOTO',n:'GoTo Gojek Tokopedia',s:'Media & Teknologi'},
-  {t:'BUKA',n:'Bukalapak.com',s:'Media & Teknologi'},
-  {t:'VIVA',n:'Visi Media Asia',s:'Media & Teknologi'},
-  {t:'MTDL',n:'Metrodata Electronics',s:'Media & Teknologi'},
-  {t:'FILM',n:'MD Pictures',s:'Media & Teknologi'},
-  // Semen & Material
-  {t:'SMGR',n:'Semen Indonesia',s:'Material'},
-  {t:'INTP',n:'Indocement Tunggal Prakarsa',s:'Material'},
-  {t:'SMBR',n:'Semen Baturaja',s:'Material'},
-  {t:'TOTO',n:'Surya Toto Indonesia',s:'Material'},
-  {t:'ARNA',n:'Arwana Citramulia',s:'Material'},
-  {t:'MARK',n:'Mark Dynamics Indonesia',s:'Material'},
-  // Kimia & Industri
-  {t:'BRPT',n:'Barito Pacific',s:'Kimia'},
-  {t:'TPIA',n:'Chandra Asri Pacific',s:'Kimia'},
-  {t:'INKP',n:'Indah Kiat Pulp & Paper',s:'Kimia'},
-  {t:'TKIM',n:'Tjiwi Kimia',s:'Kimia'},
-  {t:'FASW',n:'Fajar Surya Wisesa',s:'Kimia'},
-  {t:'AKPI',n:'Argha Karya Prima',s:'Kimia'},
-  {t:'TRST',n:'Trias Sentosa',s:'Kimia'},
-  {t:'SPMA',n:'Suparma',s:'Kimia'},
-  // Transportasi & Logistik
-  {t:'BIRD',n:'Blue Bird',s:'Transportasi'},
-  {t:'GIAA',n:'Garuda Indonesia',s:'Transportasi'},
-  {t:'ASSA',n:'Adi Sarana Armada',s:'Transportasi'},
-  {t:'SMDR',n:'Samudera Indonesia',s:'Transportasi'},
-  {t:'IPCC',n:'Indonesia Kendaraan Terminal',s:'Transportasi'},
-  {t:'DEAL',n:'Dewata Freight International',s:'Transportasi'},
-  {t:'WEHA',n:'Weha Transportasi',s:'Transportasi'},
-  // Keuangan Non-Bank
-  {t:'ADMF',n:'Adira Dinamika Multi Finance',s:'Keuangan'},
-  {t:'BFIN',n:'BFI Finance Indonesia',s:'Keuangan'},
-  {t:'MFIN',n:'Mandala Multifinance',s:'Keuangan'},
-  {t:'CFIN',n:'Clipan Finance',s:'Keuangan'},
-  {t:'BBLD',n:'Buana Finance',s:'Keuangan'},
-  {t:'SRTG',n:'Saratoga Investama Sedaya',s:'Keuangan'},
-  {t:'PNIN',n:'Paninvest',s:'Keuangan'},
-  {t:'ASRM',n:'Asuransi Ramayana',s:'Keuangan'},
-  {t:'MREI',n:'Maskapai Reasuransi Indonesia',s:'Keuangan'},
-];
+var IDX_STOCKS = []; // loaded from /api/idx-stocks
 
 // ============================================================
 // SLOT MANAGEMENT
@@ -717,7 +510,7 @@ function createCard(slotIdx) {
     card.innerHTML=
       '<div class="card-header">'+
         '<div><div class="card-ticker" style="color:var(--text-muted)">Slot '+(slotIdx+1)+'</div></div>'+
-        pickerBtnHtml(slotIdx,'')+
+        pickerBtnHtml(slotIdx)+
       '</div>'+
       '<div class="slot-empty">&#x1F4CA;<p>Klik "Ganti" untuk pilih saham</p></div>';
     return card;
@@ -736,7 +529,7 @@ function createCard(slotIdx) {
         '</div>'+
         '<div class="card-name">'+stock.n+'</div>'+
       '</div>'+
-      pickerBtnHtml(slotIdx, slot.ticker)+
+      pickerBtnHtml(slotIdx)+
     '</div>'+
     // Toggle + harga dalam 1 baris terintegrasi
     '<div class="price-row" id="priceSection-'+slotIdx+'">'+priceHtml+'</div>'+
@@ -809,8 +602,18 @@ function buildPriceSection(slotIdx, slot, p) {
 // ============================================================
 // PICKER
 // ============================================================
-function pickerBtnHtml(slotIdx, currentTicker) {
-  var items=IDX_STOCKS.map(function(s){
+function pickerBtnHtml(slotIdx) {
+  return '<div class="card-picker-wrap" id="pickerWrap-'+slotIdx+'" data-slot="'+slotIdx+'">'+
+    '<button class="card-picker-btn" data-picker-btn="'+slotIdx+'">&#x21C4; Ganti</button>'+
+    '<div class="card-picker-dropdown" id="pickerDd-'+slotIdx+'">'+
+      '<input class="picker-search" type="text" placeholder="Cari ticker atau nama..." data-picker-search="'+slotIdx+'" autocomplete="off">'+
+      '<div class="picker-list" id="pickerList-'+slotIdx+'"></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function renderPickerItems(slotIdx, stocks, currentTicker) {
+  return stocks.slice(0,60).map(function(s){
     var active=s.t===currentTicker?' active':'';
     return '<div class="picker-item'+active+'" data-picker-item="'+slotIdx+'" data-ticker="'+s.t+'">'+
       '<span class="picker-item-ticker">'+s.t+'</span>'+
@@ -820,13 +623,6 @@ function pickerBtnHtml(slotIdx, currentTicker) {
       '</div>'+
     '</div>';
   }).join('');
-  return '<div class="card-picker-wrap" id="pickerWrap-'+slotIdx+'" data-slot="'+slotIdx+'">'+
-    '<button class="card-picker-btn" data-picker-btn="'+slotIdx+'">&#x21C4; Ganti</button>'+
-    '<div class="card-picker-dropdown" id="pickerDd-'+slotIdx+'">'+
-      '<input class="picker-search" type="text" placeholder="Cari ticker atau nama..." data-picker-search="'+slotIdx+'">'+
-      '<div class="picker-list" id="pickerList-'+slotIdx+'">'+items+'</div>'+
-    '</div>'+
-  '</div>';
 }
 
 function closeAllPickers(){document.querySelectorAll('.card-picker-dropdown.open').forEach(function(el){el.classList.remove('open');});}
@@ -839,15 +635,40 @@ function openPicker(slotIdx){
   if(!isOpen){
     dd.classList.add('open');
     var inp=dd.querySelector('.picker-search');
-    if(inp){inp.value='';filterPicker(slotIdx,'');setTimeout(function(){inp.focus();},50);}
+    if(inp){
+      inp.value='';
+      filterPicker(slotIdx,'');
+      setTimeout(function(){inp.focus();},50);
+    }
   }
 }
 
-function filterPicker(slotIdx,q){
-  var lower=q.toLowerCase();
-  document.querySelectorAll('#pickerList-'+slotIdx+' .picker-item').forEach(function(item){
-    item.style.display=item.textContent.toLowerCase().indexOf(lower)!==-1?'':'none';
-  });
+function filterPicker(slotIdx, q){
+  var list=document.getElementById('pickerList-'+slotIdx);
+  if(!list) return;
+  var query=q.trim().toUpperCase();
+  var currentTicker=slots[slotIdx]&&slots[slotIdx].ticker||'';
+
+  var filtered=query
+    ? IDX_STOCKS.filter(function(s){
+        return s.t.indexOf(query)!==-1||s.n.toUpperCase().indexOf(query)!==-1;
+      })
+    : IDX_STOCKS;
+
+  var html=renderPickerItems(slotIdx, filtered, currentTicker);
+
+  // Jika tidak ada hasil & query valid sebagai ticker → tawarkan input bebas
+  if(filtered.length===0 && query.length>=2 && query.length<=6 && /^[A-Z0-9]+$/.test(query)){
+    html='<div class="picker-item" data-picker-item="'+slotIdx+'" data-ticker="'+query+'" style="border:1px dashed var(--accent);margin:.25rem">'+
+      '<span class="picker-item-ticker" style="color:var(--yellow,#f59e0b)">'+query+'</span>'+
+      '<div class="picker-item-info">'+
+        '<span class="picker-item-name">Gunakan "'+query+'" langsung</span>'+
+        '<span class="picker-item-sector">Ticker manual — harga tetap real-time</span>'+
+      '</div>'+
+    '</div>';
+  }
+
+  list.innerHTML=html;
 }
 
 // ---- IDX TICK SIZE & AUTO-SUGGEST ----
@@ -1375,6 +1196,12 @@ async function logout(){
 }
 
 (async function(){
+  // Load stock list first
+  try{
+    var sr=await fetch('/api/idx-stocks');
+    if(sr.ok) IDX_STOCKS=await sr.json();
+  }catch(e){console.warn('idx-stocks load error:',e.message);}
+
   // Mode demo: skip auth, tampilkan banner
   if(DEMO_MODE){
     updateDemoBanner(parseInt(localStorage.getItem(DEMO_KEY)||'0'));

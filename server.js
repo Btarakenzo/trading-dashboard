@@ -254,6 +254,12 @@ app.post('/api/dev/cache/clear', authRequired(['developer']), (req, res) => {
   res.json({ ok: true, message: 'Cache dan session berhasil direset' });
 });
 
+// ── IDX Stocks list ──────────────────────────────────────────────────────────
+app.get('/api/idx-stocks', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.sendFile(path.join(__dirname, 'data', 'idx-stocks.json'));
+});
+
 // ── Price & Global API (protected) ───────────────────────────────────────────
 app.get('/api/prices', async (req, res) => {
   const tickers = (req.query.tickers || '').split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
