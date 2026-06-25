@@ -62,6 +62,38 @@
     @keyframes wlFlashUp   { 0%,100%{background:transparent} 50%{background:rgba(34,197,94,.12)} }
     @keyframes wlFlashDown { 0%,100%{background:transparent} 50%{background:rgba(239,68,68,.12)} }
 
+    /* Riwayat Analisis */
+    .history-section { max-width:1100px; margin:.5rem auto 0; padding:0 1.25rem 1.5rem; }
+    .history-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:.55rem .75rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; user-select:none; }
+    .history-toggle:hover { background:var(--surface2); }
+    .history-toggle-left { display:flex; align-items:center; gap:.5rem; font-size:.82rem; font-weight:800; }
+    .history-toggle-arrow { font-size:.7rem; color:var(--text-muted); transition:transform .2s; }
+    .history-toggle-arrow.open { transform:rotate(180deg); }
+    .history-body { display:none; margin-top:.6rem; display:none; }
+    .history-body.open { display:block; }
+    .history-actions { display:flex; justify-content:flex-end; margin-bottom:.5rem; }
+    .history-list { display:flex; flex-direction:column; gap:.45rem; }
+    .history-item { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .history-item-header { display:flex; align-items:center; justify-content:space-between; padding:.5rem .75rem; cursor:pointer; }
+    .history-item-header:hover { background:var(--surface2); }
+    .history-item-meta { display:flex; align-items:center; gap:.75rem; }
+    .history-item-date { font-size:.72rem; font-weight:700; color:var(--text); }
+    .history-item-time { font-size:.65rem; color:var(--text-muted); }
+    .history-item-pills { display:flex; gap:.3rem; flex-wrap:wrap; }
+    .history-pill { font-size:.62rem; font-weight:700; padding:.1rem .4rem; border-radius:4px; }
+    .history-pill.go    { background:rgba(34,197,94,.15);  color:var(--green); }
+    .history-pill.skip  { background:rgba(239,68,68,.12);  color:var(--red); }
+    .history-pill.tipis { background:rgba(99,102,241,.12); color:var(--accent); }
+    .history-pill.slhit { background:rgba(239,68,68,.2);   color:var(--red); }
+    .history-pill.wait  { background:rgba(100,116,139,.1); color:var(--text-muted); }
+    .history-item-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:.8rem; padding:.2rem .35rem; border-radius:4px; flex-shrink:0; }
+    .history-item-del:hover { color:var(--red); background:rgba(239,68,68,.1); }
+    .history-detail { display:none; padding:.6rem .75rem; border-top:1px solid var(--border); font-size:.72rem; }
+    .history-detail.open { display:block; }
+    .history-detail-row { display:flex; align-items:center; justify-content:space-between; padding:.3rem 0; border-bottom:1px dashed rgba(42,45,62,.6); }
+    .history-detail-row:last-child { border:none; }
+    .history-empty { text-align:center; color:var(--text-muted); font-size:.78rem; padding:1.25rem 0; }
+
     /* Picker */
     .card-picker-wrap { position: relative; }
     .card-picker-btn {
@@ -338,6 +370,7 @@
       <div class="summary-actions">
         <button class="btn btn-secondary" onclick="tutupModal()">Tutup</button>
         <button class="btn btn-ghost" id="salinBtn" onclick="salinRingkasan()">&#x1F4CB; Salin Teks</button>
+        <button class="btn btn-ghost" id="simpanBtn" onclick="simpanRiwayat()" style="color:var(--green)">&#x1F4BE; Simpan</button>
       </div>
     </div>
   </div>
@@ -375,6 +408,22 @@
   </div>
   <div id="watchlistBody">
     <div class="watchlist-empty">Belum ada saham di watchlist. Ketik nama atau ticker di kolom pencarian.</div>
+  </div>
+</section>
+
+<!-- Riwayat Analisis -->
+<section class="history-section" id="historySection">
+  <div class="history-toggle" onclick="toggleHistory()" id="historyToggle">
+    <div class="history-toggle-left">&#x1F4D6; Riwayat Analisis <span id="histCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
+    <span class="history-toggle-arrow" id="histArrow">&#x25BC;</span>
+  </div>
+  <div class="history-body" id="historyBody">
+    <div class="history-actions">
+      <button class="btn btn-ghost" style="font-size:.7rem;color:var(--red)" onclick="hapusSemuaRiwayat()">&#x1F5D1; Hapus Semua</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">Belum ada riwayat. Klik ⚡ Analisis lalu 💾 Simpan.</div>
+    </div>
   </div>
 </section>
 
@@ -1386,6 +1435,131 @@ function checkNotifications() {
 }
 
 // ============================================================
+// RIWAYAT ANALISIS
+// ============================================================
+var HIST_KEY  = 'kenz_history';
+var HIST_MAX  = 30;
+
+function histLoad() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
+}
+function histSave(list) { localStorage.setItem(HIST_KEY, JSON.stringify(list)); }
+
+function simpanRiwayat() {
+  var now = new Date();
+  var wib = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Jakarta'}));
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var dateStr = pad(wib.getDate())+'/'+pad(wib.getMonth()+1)+'/'+wib.getFullYear();
+  var timeStr = pad(wib.getHours())+':'+pad(wib.getMinutes());
+  var ihsg = document.getElementById('ihsgVal') ? document.getElementById('ihsgVal').value : '';
+  var badge = document.getElementById('marketBadge') ? document.getElementById('marketBadge').textContent.trim() : '';
+
+  var items = [];
+  slots.forEach(function(slot, si) {
+    if (!slot.ticker) return;
+    var stock = getStock(slot.ticker);
+    var price = slot.mode==='auto'
+      ? (livePrices[slot.ticker]&&!livePrices[slot.ticker].error ? livePrices[slot.ticker].last : null)
+      : (slot.manualPrice || null);
+    var risk = price && slot.sl ? price - slot.sl : 0;
+    var rrTp1 = risk > 0 && slot.tp1 ? (slot.tp1 - price) / risk : 0;
+    var verdict, cls;
+    if (!price || !slot.sl || !slot.entryLow || !slot.entryHigh) { verdict='Data belum lengkap'; cls='wait'; }
+    else if (price < slot.sl) { verdict='SL HIT'; cls='slhit'; }
+    else if (price>=slot.entryLow&&price<=slot.entryHigh) { verdict=rrTp1>=2?'GO TRADE':'TIPIS'; cls=rrTp1>=2?'go':'tipis'; }
+    else if (price>slot.entryHigh) { verdict=slot.tp1&&price>=slot.tp1?'TP1 TERCAPAI':'SKIP'; cls=slot.tp1&&price>=slot.tp1?'go':'skip'; }
+    else { verdict='Belum Entry'; cls='wait'; }
+    items.push({ ticker:slot.ticker, name:stock.n, price:price, entryLow:slot.entryLow, entryHigh:slot.entryHigh, sl:slot.sl, tp1:slot.tp1, tp2:slot.tp2, lot:slot.lot, rrTp1:rrTp1, verdict:verdict, cls:cls });
+  });
+
+  if (!items.length) { showToast('Tidak ada data', 'Isi minimal satu slot saham terlebih dahulu.', 'sl'); return; }
+
+  var entry = { id: Date.now(), date: dateStr, time: timeStr, ihsg: ihsg, market: badge, items: items };
+  var list = histLoad();
+  list.unshift(entry);
+  if (list.length > HIST_MAX) list = list.slice(0, HIST_MAX);
+  histSave(list);
+  renderHistory();
+
+  var btn = document.getElementById('simpanBtn');
+  if (btn) { var o=btn.innerHTML; btn.innerHTML='&#x2714; Tersimpan!'; setTimeout(function(){ btn.innerHTML=o; }, 2000); }
+  showToast('Riwayat disimpan', dateStr+' '+timeStr+' — '+items.length+' saham', 'tp1');
+}
+
+function renderHistory() {
+  var list = histLoad();
+  var countEl = document.getElementById('histCount');
+  if (countEl) countEl.textContent = list.length ? '('+list.length+')' : '';
+
+  var listEl = document.getElementById('historyList');
+  if (!listEl) return;
+  if (!list.length) {
+    listEl.innerHTML = '<div class="history-empty">Belum ada riwayat. Klik ⚡ Analisis lalu 💾 Simpan.</div>';
+    return;
+  }
+
+  listEl.innerHTML = list.map(function(entry) {
+    var pills = entry.items.map(function(it) {
+      return '<span class="history-pill '+it.cls+'">'+it.ticker+' · '+it.verdict+'</span>';
+    }).join('');
+    var detail = entry.items.map(function(it) {
+      var fmt = function(n){ return n ? Number(n).toLocaleString('id-ID') : '—'; };
+      return '<div class="history-detail-row">'+
+        '<div>'+
+          '<span style="font-weight:800;color:var(--accent)">'+it.ticker+'</span>'+
+          '<span style="color:var(--text-muted);margin-left:.4rem">'+it.name+'</span>'+
+        '</div>'+
+        '<div style="display:flex;gap:.75rem;align-items:center">'+
+          '<span style="color:var(--text-muted)">'+fmt(it.price)+'</span>'+
+          '<span style="color:var(--text-muted);font-size:.65rem">R:R '+(it.rrTp1?'1:'+Number(it.rrTp1).toFixed(2):'-')+'</span>'+
+          '<span style="font-weight:800" class="history-pill '+it.cls+'">'+it.verdict+'</span>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    var marketLine = entry.ihsg ? 'IHSG '+Number(entry.ihsg).toLocaleString('id-ID')+' · '+entry.market : entry.market;
+    return '<div class="history-item" id="hitem-'+entry.id+'">'+
+      '<div class="history-item-header" onclick="toggleHistDetail('+entry.id+')">'+
+        '<div class="history-item-meta">'+
+          '<div>'+
+            '<div class="history-item-date">'+entry.date+' <span class="history-item-time">'+entry.time+'</span></div>'+
+            (marketLine?'<div style="font-size:.62rem;color:var(--text-muted)">'+marketLine+'</div>':'')+
+          '</div>'+
+          '<div class="history-item-pills">'+pills+'</div>'+
+        '</div>'+
+        '<button class="history-item-del" onclick="event.stopPropagation();hapusRiwayat('+entry.id+')" title="Hapus">&#x2715;</button>'+
+      '</div>'+
+      '<div class="history-detail" id="hdetail-'+entry.id+'">'+detail+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function toggleHistDetail(id) {
+  var el = document.getElementById('hdetail-'+id);
+  if (el) el.classList.toggle('open');
+}
+
+function toggleHistory() {
+  var body  = document.getElementById('historyBody');
+  var arrow = document.getElementById('histArrow');
+  if (!body) return;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (arrow) arrow.classList.toggle('open', !isOpen);
+}
+
+function hapusRiwayat(id) {
+  var list = histLoad().filter(function(e){ return e.id !== id; });
+  histSave(list);
+  renderHistory();
+}
+
+function hapusSemuaRiwayat() {
+  if (!confirm('Hapus semua riwayat analisis?')) return;
+  histSave([]);
+  renderHistory();
+}
+
+// ============================================================
 // WATCHLIST
 // ============================================================
 var WL_KEY = 'kenz_watchlist';
@@ -1605,6 +1779,7 @@ async function logout(){
     fetchGlobal();
     fetchCrypto();
     document.getElementById('watchlistSection').style.display='none';
+    document.getElementById('historySection').style.display='none';
     document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
     return;
   }
@@ -1636,6 +1811,7 @@ async function logout(){
   wlFetch();
   wlInitSearch();
   updateNotifBtn();
+  renderHistory();
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
 </script>
