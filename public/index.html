@@ -320,6 +320,107 @@
     /* Empty slot */
     .slot-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
     .slot-empty p { margin-top: .5rem; font-size: .75rem; }
+
+    /* ===== RESPONSIVE MOBILE ===== */
+    @media (max-width: 768px) {
+      /* Header */
+      header { padding: 0 .75rem; gap: .4rem; height: auto; min-height: 52px; flex-wrap: wrap; padding-top: .4rem; padding-bottom: .4rem; }
+      .logo { font-size: .82rem; }
+      .neon-clock { display: none; }
+      #headerUser { display: none; }
+      .header-right { gap: .35rem; flex-wrap: wrap; }
+      .header-right .btn { padding: .32rem .55rem; font-size: .7rem; }
+
+      /* Progress bar */
+      .refresh-progress { top: 0; }
+
+      /* Stats row */
+      .stats-row { grid-template-columns: 1fr 1fr; padding: .35rem .75rem; gap: .35rem; }
+      .stats-sessions { flex-wrap: wrap; gap: .3rem; }
+      .stats-update { font-size: .62rem; }
+      .kurs-value { font-size: .82rem; }
+      .kurs-change { font-size: .65rem; }
+
+      /* Ticker */
+      .ticker-label { font-size: .58rem; padding: 0 .45rem; }
+      .ticker-item { padding: 0 1rem; font-size: .7rem; }
+
+      /* IHSG panel */
+      main { padding: .75rem; }
+      .ihsg-panel { flex-direction: column; align-items: stretch; gap: .75rem; padding: .85rem 1rem; }
+      .ihsg-inputs { flex-direction: column; gap: .5rem; }
+      .ihsg-field input[type="number"] { width: 100% !important; }
+
+      /* Level inputs in card (3→2 cols) */
+      .level-inputs { grid-template-columns: repeat(2, 1fr); }
+
+      /* Card */
+      .cards-grid { grid-template-columns: 1fr; }
+      .card { padding: .85rem; }
+
+      /* Watchlist */
+      .watchlist-section { padding: 0 .75rem 1rem; }
+      .watchlist-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+      /* Screener */
+      .screener-section { padding: 0 .75rem; }
+
+      /* History */
+      .history-section { padding: 0 .75rem 1rem; }
+      .history-item-meta { flex-wrap: wrap; gap: .35rem; }
+
+      /* Modal ringkasan */
+      #modalOverlay { padding: .5rem; }
+      #modalOverlay > div { border-radius: 10px; max-height: 90vh; }
+
+      /* Chart modal */
+      #chartModal > div { padding: .75rem; border-radius: 10px; }
+    }
+
+    @media (max-width: 480px) {
+      /* Header: minimal */
+      header { gap: .3rem; }
+      .logo { font-size: .76rem; letter-spacing: 0; }
+      .header-right .btn { padding: .28rem .42rem; font-size: .65rem; }
+
+      /* Stats row: single column */
+      .stats-row { grid-template-columns: 1fr; gap: .2rem; }
+      .stats-sessions { gap: .25rem; }
+      .stats-update { display: none; }
+      .kurs-value { font-size: .78rem; }
+
+      /* Ticker: hide crypto label text */
+      .ticker-label { font-size: .54rem; padding: 0 .35rem; letter-spacing: 0; }
+
+      /* IHSG */
+      .market-status { min-width: unset; }
+
+      /* Cards */
+      .card { padding: .75rem; gap: .6rem; }
+      .card-ticker { font-size: .95rem; }
+      .levels-row { grid-template-columns: repeat(2, 1fr); }
+      .mode-btn { padding: .2rem .38rem; font-size: .6rem; }
+      .price-live { font-size: .82rem; }
+
+      /* Watchlist: hide name on very small */
+      .wl-name { display: none; }
+
+      /* Toast: full-width at bottom */
+      #toastContainer { right: .5rem; left: .5rem; }
+      .toast { min-width: unset; max-width: 100%; }
+
+      /* Summary modal */
+      .summary-stats { grid-template-columns: repeat(2, 1fr); }
+      .summary-actions { flex-wrap: wrap; }
+      .summary-actions .btn { flex: 1; justify-content: center; min-width: 80px; }
+
+      /* History pills: wrap nicely */
+      .history-item-pills { gap: .2rem; }
+
+      /* Screener panels */
+      .screener-panels { gap: .5rem; }
+      .scr-btns { gap: .15rem; }
+    }
   </style>
 </head>
 <body>
