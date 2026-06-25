@@ -12,6 +12,38 @@
     @media (max-width: 600px) { .cards-grid { grid-template-columns: 1fr; } }
     .card { overflow: visible; }
 
+    /* Watchlist */
+    .watchlist-section { max-width: 1100px; margin: 1.25rem auto 0; padding: 0 1.25rem 1.5rem; }
+    .watchlist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .watchlist-title { font-size: .85rem; font-weight: 800; display: flex; align-items: center; gap: .45rem; }
+    .watchlist-add { display: flex; gap: .5rem; position: relative; }
+    .watchlist-search-input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .4rem .75rem; font-size: .78rem; width: 180px; outline: none; }
+    .watchlist-search-input:focus { border-color: var(--accent); }
+    .watchlist-dropdown { position: absolute; top: calc(100% + 4px); left: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 400; max-height: 220px; overflow-y: auto; display: none; }
+    .watchlist-dropdown.open { display: block; }
+    .wl-dd-item { display: flex; align-items: center; gap: .6rem; padding: .45rem .75rem; cursor: pointer; font-size: .78rem; }
+    .wl-dd-item:hover { background: var(--surface2); }
+    .wl-dd-ticker { font-weight: 700; color: var(--accent); min-width: 50px; }
+    .wl-dd-name { color: var(--text-muted); font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .watchlist-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    .watchlist-table th { color: var(--text-muted); font-weight: 700; font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; padding: .4rem .6rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .watchlist-table th:last-child, .watchlist-table td:last-child { text-align: right; }
+    .watchlist-table td { padding: .5rem .6rem; border-bottom: 1px solid rgba(42,45,62,.6); vertical-align: middle; }
+    .watchlist-table tr:hover td { background: rgba(255,255,255,.02); }
+    .wl-ticker { font-weight: 800; color: var(--accent); }
+    .wl-name { color: var(--text-muted); font-size: .7rem; }
+    .wl-price { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .wl-chg.up { color: var(--green); } .wl-chg.down { color: var(--red); } .wl-chg.flat { color: var(--text-muted); }
+    .wl-del { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: .85rem; padding: .2rem .4rem; border-radius: 4px; }
+    .wl-del:hover { color: var(--red); background: rgba(239,68,68,.1); }
+    .wl-chart-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: .8rem; padding: .2rem .4rem; border-radius: 4px; }
+    .wl-chart-btn:hover { color: var(--accent); background: rgba(99,102,241,.1); }
+    .watchlist-empty { text-align: center; color: var(--text-muted); font-size: .78rem; padding: 1.5rem 0; }
+    .wl-flash-up { animation: wlFlashUp .5s ease; }
+    .wl-flash-down { animation: wlFlashDown .5s ease; }
+    @keyframes wlFlashUp   { 0%,100%{background:transparent} 50%{background:rgba(34,197,94,.12)} }
+    @keyframes wlFlashDown { 0%,100%{background:transparent} 50%{background:rgba(239,68,68,.12)} }
+
     /* Picker */
     .card-picker-wrap { position: relative; }
     .card-picker-btn {
@@ -309,6 +341,20 @@
     <div style="font-size:.68rem;color:var(--text-muted);margin-top:1rem;opacity:.6">BEI Trading Dashboard</div>
   </div>
 </div>
+
+<!-- Watchlist Section -->
+<section class="watchlist-section" id="watchlistSection">
+  <div class="watchlist-header">
+    <div class="watchlist-title">&#x1F4CB; Watchlist <span id="wlCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
+    <div class="watchlist-add">
+      <input class="watchlist-search-input" id="wlSearchInput" type="text" placeholder="&#x1F50D; Tambah saham..." autocomplete="off">
+      <div class="watchlist-dropdown" id="wlDropdown"></div>
+    </div>
+  </div>
+  <div id="watchlistBody">
+    <div class="watchlist-empty">Belum ada saham di watchlist. Ketik nama atau ticker di kolom pencarian.</div>
+  </div>
+</section>
 
 <!-- Modal Chart TradingView -->
 <div id="chartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:550;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)tutupChart()">
@@ -1208,6 +1254,152 @@ function fallbackCopy(teks){
 // INIT
 // ============================================================
 // ============================================================
+// WATCHLIST
+// ============================================================
+var WL_KEY = 'kenz_watchlist';
+var wlPrices = {};
+var wlTimer = null;
+
+function wlLoad() {
+  try { return JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch { return []; }
+}
+function wlSave(list) { localStorage.setItem(WL_KEY, JSON.stringify(list)); }
+
+function wlAdd(ticker) {
+  ticker = ticker.toUpperCase().trim();
+  if (!ticker) return;
+  var list = wlLoad();
+  if (list.indexOf(ticker) !== -1) return;
+  list.push(ticker);
+  wlSave(list);
+  wlRender();
+  wlFetch();
+}
+
+function wlRemove(ticker) {
+  var list = wlLoad().filter(function(t){ return t !== ticker; });
+  wlSave(list);
+  delete wlPrices[ticker];
+  wlRender();
+}
+
+function wlRender() {
+  var list = wlLoad();
+  var body = document.getElementById('watchlistBody');
+  var countEl = document.getElementById('wlCount');
+  if (countEl) countEl.textContent = list.length ? '(' + list.length + ')' : '';
+  if (!list.length) {
+    body.innerHTML = '<div class="watchlist-empty">Belum ada saham di watchlist. Ketik nama atau ticker di kolom pencarian.</div>';
+    return;
+  }
+  var rows = list.map(function(ticker) {
+    var p = wlPrices[ticker];
+    var stock = getStock(ticker);
+    var priceStr = p && !p.error ? p.last.toLocaleString('id-ID') : '—';
+    var pct = p && !p.error ? p.changePct : null;
+    var chg = p && !p.error ? p.change : null;
+    var dir = pct === null ? 'flat' : pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
+    var arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '▬';
+    var sign = pct > 0 ? '+' : '';
+    var pctStr = pct !== null ? arrow + ' ' + sign + pct.toFixed(2) + '%' : '—';
+    var chgStr = chg !== null ? (chg >= 0 ? '+' : '') + chg.toLocaleString('id-ID') : '';
+    return '<tr id="wlRow-' + ticker + '">'+
+      '<td><div class="wl-ticker">' + ticker + '</div><div class="wl-name">' + stock.n + '</div></td>'+
+      '<td><span class="wl-price">' + priceStr + '</span></td>'+
+      '<td><span class="wl-chg ' + dir + '">' + pctStr + '</span><div style="font-size:.65rem;color:var(--text-muted)">' + chgStr + '</div></td>'+
+      '<td><span style="font-size:.65rem;color:var(--text-muted)">' + (stock.s !== '—' ? stock.s : '') + '</span></td>'+
+      '<td>'+
+        '<button class="wl-chart-btn" onclick="bukaChart(\'' + ticker + '\',\'' + stock.n.replace(/'/g,'') + '\')" title="Lihat Chart">&#x1F4C8;</button>'+
+        '<button class="wl-del" onclick="wlRemove(\'' + ticker + '\')" title="Hapus">&#x2715;</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML = '<table class="watchlist-table">'+
+    '<thead><tr><th>Saham</th><th>Harga</th><th>% Ubah</th><th>Sektor</th><th></th></tr></thead>'+
+    '<tbody>' + rows + '</tbody>'+
+  '</table>';
+}
+
+async function wlFetch() {
+  var list = wlLoad();
+  if (!list.length) return;
+  try {
+    var res = await fetch('/api/prices?tickers=' + list.join(','));
+    var json = await res.json();
+    if (!json.prices) return;
+    Object.keys(json.prices).forEach(function(t) {
+      var prev = wlPrices[t] && wlPrices[t].last;
+      var next = json.prices[t];
+      wlPrices[t] = next;
+      // flash row on price change
+      if (prev && next && !next.error && next.last !== prev) {
+        var row = document.getElementById('wlRow-' + t);
+        if (row) {
+          var cls = next.last > prev ? 'wl-flash-up' : 'wl-flash-down';
+          row.classList.remove('wl-flash-up','wl-flash-down');
+          void row.offsetWidth;
+          row.classList.add(cls);
+          setTimeout(function(){ row.classList.remove(cls); }, 600);
+        }
+      }
+    });
+    wlRender();
+  } catch(e) { console.warn('WL fetch error:', e.message); }
+  clearTimeout(wlTimer);
+  wlTimer = setTimeout(wlFetch, 5000);
+}
+
+function wlInitSearch() {
+  var inp = document.getElementById('wlSearchInput');
+  var dd  = document.getElementById('wlDropdown');
+  if (!inp || !dd) return;
+
+  inp.addEventListener('input', function() {
+    var q = inp.value.trim().toUpperCase();
+    if (!q) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+    var results = IDX_STOCKS.filter(function(s){
+      return s.t.indexOf(q) !== -1 || s.n.toUpperCase().indexOf(q) !== -1;
+    }).slice(0, 30);
+
+    if (!results.length && q.length >= 2 && /^[A-Z0-9]+$/.test(q)) {
+      results = [{ t: q, n: 'Ticker manual', s: '—' }];
+    }
+    if (!results.length) { dd.classList.remove('open'); return; }
+
+    dd.innerHTML = results.map(function(s){
+      return '<div class="wl-dd-item" data-ticker="' + s.t + '">'+
+        '<span class="wl-dd-ticker">' + s.t + '</span>'+
+        '<span class="wl-dd-name">' + s.n + '</span>'+
+      '</div>';
+    }).join('');
+    dd.classList.add('open');
+  });
+
+  dd.addEventListener('click', function(e) {
+    var item = e.target.closest('[data-ticker]');
+    if (!item) return;
+    wlAdd(item.getAttribute('data-ticker'));
+    inp.value = '';
+    dd.classList.remove('open');
+    dd.innerHTML = '';
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!inp.contains(e.target) && !dd.contains(e.target)) {
+      dd.classList.remove('open');
+    }
+  });
+
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      var first = dd.querySelector('[data-ticker]');
+      if (first) { wlAdd(first.getAttribute('data-ticker')); inp.value = ''; dd.classList.remove('open'); }
+    }
+    if (e.key === 'Escape') { dd.classList.remove('open'); inp.blur(); }
+  });
+}
+
+// ============================================================
 // CHART
 // ============================================================
 var tvScriptLoaded = false;
@@ -1280,6 +1472,7 @@ async function logout(){
     fetchPrices();
     fetchGlobal();
     fetchCrypto();
+    document.getElementById('watchlistSection').style.display='none';
     document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
     return;
   }
@@ -1307,6 +1500,9 @@ async function logout(){
   fetchPrices();
   fetchGlobal();
   fetchCrypto();
+  wlRender();
+  wlFetch();
+  wlInitSearch();
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
 </script>
