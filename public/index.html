@@ -160,9 +160,14 @@
     .stats-update-time { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
 
     /* Ticker tape */
-    .ticker-tape { background: var(--surface); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: .3rem 0; cursor: default; }
+    .ticker-tape { background: var(--surface); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: .3rem 0; cursor: default; display: flex; align-items: center; }
     .ticker-tape:hover .ticker-track { animation-play-state: paused; }
+    .ticker-label { flex-shrink: 0; font-size: .62rem; font-weight: 800; letter-spacing: .8px; padding: 0 .7rem; border-right: 1px solid var(--border); height: 100%; display: flex; align-items: center; }
+    .ticker-label.lbl-global { color: var(--accent); }
+    .ticker-label.lbl-crypto { color: var(--yellow, #f59e0b); }
+    .ticker-overflow { overflow: hidden; flex: 1; }
     .ticker-track { display: inline-block; animation: tickerScroll 50s linear infinite; }
+    .ticker-track.crypto-track { animation-duration: 40s; }
     .ticker-item { display: inline-flex; align-items: center; gap: .4rem; padding: 0 1.5rem; font-size: .75rem; border-right: 1px solid var(--border); }
     .ticker-item-name { color: var(--text-muted); font-weight: 600; }
     .ticker-item-price { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -235,8 +240,19 @@
 </div>
 
 <div class="ticker-tape">
-  <div class="ticker-track" id="tickerTrack">
-    <span class="ticker-item"><span class="ticker-item-name">Memuat data global...</span></span>
+  <span class="ticker-label lbl-global">GLOBAL</span>
+  <div class="ticker-overflow">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-item"><span class="ticker-item-name">Memuat data global...</span></span>
+    </div>
+  </div>
+</div>
+<div class="ticker-tape" style="border-top:1px solid var(--border)">
+  <span class="ticker-label lbl-crypto">CRYPTO</span>
+  <div class="ticker-overflow">
+    <div class="ticker-track crypto-track" id="cryptoTrack">
+      <span class="ticker-item"><span class="ticker-item-name">Memuat data crypto...</span></span>
+    </div>
   </div>
 </div>
 
@@ -1048,6 +1064,29 @@ async function fetchGlobal(){
   globalTimer=setTimeout(fetchGlobal,GLOBAL_INTERVAL);
 }
 
+async function fetchCrypto(){
+  try{
+    var res=await fetch('/api/crypto'), json=await res.json();
+    if(!res.ok||!json.data) return;
+    var html=json.data.map(function(d){
+      var dir=d.changePct>0?'up':d.changePct<0?'down':'flat';
+      var sign=d.changePct>0?'+':'';
+      var arrow=d.changePct>0?'▲':d.changePct<0?'▼':'▬';
+      var priceStr=d.price>=1000
+        ? '$'+d.price.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
+        : '$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+      return '<span class="ticker-item">'+
+        '<span class="ticker-item-name">'+d.short+'</span>'+
+        '<span class="ticker-item-price">'+priceStr+'</span>'+
+        '<span class="ticker-item-pct '+dir+'">'+arrow+' '+sign+d.changePct.toFixed(2)+'%</span>'+
+      '</span>';
+    }).join('');
+    var track=document.getElementById('cryptoTrack');
+    track.innerHTML=html+html;
+  }catch(e){console.warn('Crypto error:',e.message);}
+  setTimeout(fetchCrypto,60000);
+}
+
 // ============================================================
 // RECALC & ANALYSIS
 // ============================================================
@@ -1342,6 +1381,7 @@ async function logout(){
     renderAllCards();
     fetchPrices();
     fetchGlobal();
+    fetchCrypto();
     document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
     return;
   }
@@ -1368,6 +1408,7 @@ async function logout(){
   renderAllCards();
   fetchPrices();
   fetchGlobal();
+  fetchCrypto();
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
 </script>

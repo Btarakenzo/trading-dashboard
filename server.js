@@ -322,6 +322,43 @@ app.get('/api/global', async (req, res) => {
   }
 });
 
+const CRYPTO_SYMBOLS = [
+  { symbol: 'BTC-USD',  name: 'Bitcoin',  short: 'BTC'  },
+  { symbol: 'ETH-USD',  name: 'Ethereum', short: 'ETH'  },
+  { symbol: 'BNB-USD',  name: 'BNB',      short: 'BNB'  },
+  { symbol: 'SOL-USD',  name: 'Solana',   short: 'SOL'  },
+  { symbol: 'XRP-USD',  name: 'XRP',      short: 'XRP'  },
+  { symbol: 'ADA-USD',  name: 'Cardano',  short: 'ADA'  },
+  { symbol: 'DOGE-USD', name: 'Dogecoin', short: 'DOGE' },
+  { symbol: 'AVAX-USD', name: 'Avalanche',short: 'AVAX' },
+];
+
+const cryptoCache = { data: null, ts: 0 };
+const CRYPTO_CACHE_TTL = 30 * 1000;
+
+app.get('/api/crypto', async (req, res) => {
+  const now = Date.now();
+  if (cryptoCache.data && now - cryptoCache.ts < CRYPTO_CACHE_TTL)
+    return res.json({ data: cryptoCache.data });
+  try {
+    const quotes = await fetchYahooQuotes(CRYPTO_SYMBOLS.map(s => s.symbol));
+    const results = [];
+    quotes.forEach(q => {
+      const meta = CRYPTO_SYMBOLS.find(s => s.symbol === q.symbol);
+      if (!meta) return;
+      results.push({ symbol: q.symbol, name: meta.name, short: meta.short,
+        price: q.regularMarketPrice || 0,
+        change: q.regularMarketChange || 0,
+        changePct: q.regularMarketChangePercent || 0 });
+    });
+    cryptoCache.data = results; cryptoCache.ts = now;
+    res.json({ data: results });
+  } catch (err) {
+    console.error('[crypto]', err.message);
+    res.status(500).json({ error: 'Gagal mengambil data crypto' });
+  }
+});
+
 // ── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log('Trading Dashboard berjalan di http://localhost:' + PORT);
