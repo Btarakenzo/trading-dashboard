@@ -70,10 +70,13 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "'unsafe-inline'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "s3.tradingview.com", "*.tradingview.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
-      styleSrc:      ["'self'", "'unsafe-inline'"],
-      imgSrc:        ["'self'", "data:"],
+      styleSrc:      ["'self'", "'unsafe-inline'", "*.tradingview.com"],
+      imgSrc:        ["'self'", "data:", "*.tradingview.com"],
+      frameSrc:      ["*.tradingview.com"],
+      connectSrc:    ["'self'", "*.tradingview.com"],
+      fontSrc:       ["'self'", "https:", "data:", "*.tradingview.com"],
     },
   },
 }));
