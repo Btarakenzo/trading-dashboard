@@ -12,12 +12,30 @@
     @media (max-width: 600px) { .cards-grid { grid-template-columns: 1fr; } }
     .card { overflow: visible; }
 
+    /* Toast notifications */
+    #toastContainer { position:fixed; bottom:1.25rem; right:1.25rem; z-index:700; display:flex; flex-direction:column; gap:.5rem; pointer-events:none; }
+    .toast { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.65rem .9rem; min-width:240px; max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,.55); display:flex; align-items:flex-start; gap:.6rem; pointer-events:all; animation:toastIn .25s ease; }
+    .toast.removing { animation:toastOut .25s ease forwards; }
+    @keyframes toastIn  { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:none} }
+    @keyframes toastOut { to{opacity:0;transform:translateX(40px)} }
+    .toast-icon { font-size:1.1rem; flex-shrink:0; margin-top:.05rem; }
+    .toast-body { flex:1; min-width:0; }
+    .toast-title { font-size:.78rem; font-weight:800; margin-bottom:.15rem; }
+    .toast-msg { font-size:.7rem; color:var(--text-muted); line-height:1.4; }
+    .toast-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:.8rem; padding:0 .1rem; flex-shrink:0; }
+    .toast.notif-sl    { border-left:3px solid var(--red); }
+    .toast.notif-entry { border-left:3px solid var(--accent); }
+    .toast.notif-tp1   { border-left:3px solid var(--green); }
+    .toast.notif-tp2   { border-left:3px solid #f59e0b; }
+    .notif-btn-on  { color:var(--yellow,#f59e0b) !important; }
+
     /* Watchlist */
     .watchlist-section { max-width: 1100px; margin: 1.25rem auto 0; padding: 0 1.25rem 1.5rem; }
-    .watchlist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .watchlist-header { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .75rem; }
+    .watchlist-header-top { display: flex; align-items: center; justify-content: space-between; }
     .watchlist-title { font-size: .85rem; font-weight: 800; display: flex; align-items: center; gap: .45rem; }
-    .watchlist-add { display: flex; gap: .5rem; position: relative; }
-    .watchlist-search-input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .4rem .75rem; font-size: .78rem; width: 180px; outline: none; }
+    .watchlist-add { display: flex; gap: .5rem; position: relative; width: 100%; }
+    .watchlist-search-input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .4rem .75rem; font-size: .78rem; flex: 1; min-width: 0; width: 100%; outline: none; }
     .watchlist-search-input:focus { border-color: var(--accent); }
     .watchlist-dropdown { position: absolute; top: calc(100% + 4px); left: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 400; max-height: 220px; overflow-y: auto; display: none; }
     .watchlist-dropdown.open { display: block; }
@@ -253,10 +271,12 @@
     <span id="headerUser" style="font-size:.72rem;color:var(--text-muted)"></span>
     <button class="btn btn-secondary" onclick="analisisSemua()">&#x26A1; Analisis</button>
     <button class="btn btn-ghost" onclick="salinRingkasan()">&#x1F4CB; Salin</button>
+    <button class="btn btn-ghost" id="notifBtn" onclick="toggleNotif()" title="Notifikasi Harga">&#x1F514;</button>
     <button class="btn btn-ghost" style="font-size:.75rem;color:var(--red)" onclick="logout()">Keluar</button>
   </div>
 </header>
 <div class="refresh-progress"><div class="refresh-progress-fill" id="progressFill"></div></div>
+<div id="toastContainer"></div>
 
 <div class="stats-row">
   <div class="stats-sessions" id="statsSessions"></div>
@@ -345,9 +365,11 @@
 <!-- Watchlist Section -->
 <section class="watchlist-section" id="watchlistSection">
   <div class="watchlist-header">
-    <div class="watchlist-title">&#x1F4CB; Watchlist <span id="wlCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
+    <div class="watchlist-header-top">
+      <div class="watchlist-title">&#x1F4CB; Watchlist <span id="wlCount" style="font-size:.65rem;color:var(--text-muted);font-weight:400"></span></div>
+    </div>
     <div class="watchlist-add">
-      <input class="watchlist-search-input" id="wlSearchInput" type="text" placeholder="&#x1F50D; Tambah saham..." autocomplete="off">
+      <input class="watchlist-search-input" id="wlSearchInput" type="text" placeholder="Cari ticker atau nama saham untuk ditambahkan..." autocomplete="off">
       <div class="watchlist-dropdown" id="wlDropdown"></div>
     </div>
   </div>
@@ -885,6 +907,7 @@ async function fetchPricesFor(tickers){
         recalcCard(i);
       }
     }
+    checkNotifications();
     var now=new Date(),wib=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
     setRefreshStatus('live','Update '+String(wib.getHours()).padStart(2,'0')+':'+String(wib.getMinutes()).padStart(2,'0')+':'+String(wib.getSeconds()).padStart(2,'0'));
     restartProgressBar();
@@ -1254,6 +1277,115 @@ function fallbackCopy(teks){
 // INIT
 // ============================================================
 // ============================================================
+// NOTIFIKASI HARGA
+// ============================================================
+var notifEnabled = localStorage.getItem('kenz_notif') === '1';
+var notifiedLevels = {}; // {ticker: {sl,entry,tp1,tp2}}
+var toastIdSeq = 0;
+
+function getNL(ticker) {
+  if (!notifiedLevels[ticker]) notifiedLevels[ticker] = {};
+  return notifiedLevels[ticker];
+}
+
+function updateNotifBtn() {
+  var btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  if (notifEnabled) {
+    btn.classList.add('notif-btn-on');
+    btn.title = 'Notifikasi Aktif — klik untuk nonaktifkan';
+  } else {
+    btn.classList.remove('notif-btn-on');
+    btn.title = 'Aktifkan Notifikasi Harga';
+  }
+}
+
+async function toggleNotif() {
+  if (notifEnabled) {
+    notifEnabled = false;
+    localStorage.setItem('kenz_notif', '0');
+    updateNotifBtn();
+    showToast('Notifikasi dinonaktifkan', 'Anda tidak akan menerima alert harga.', 'entry');
+    return;
+  }
+  if ('Notification' in window && Notification.permission === 'default') {
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      showToast('Izin ditolak', 'Notifikasi browser diblokir. Alert in-app tetap aktif.', 'sl');
+    }
+  }
+  notifEnabled = true;
+  localStorage.setItem('kenz_notif', '1');
+  updateNotifBtn();
+  showToast('Notifikasi diaktifkan', 'Anda akan menerima alert saat harga menyentuh level SL, Entry, TP1, atau TP2.', 'tp1');
+}
+
+function sendNotif(title, msg, type) {
+  showToast(title, msg, type);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    var icons = { sl: '⚠️', entry: '📌', tp1: '🎯', tp2: '🏆' };
+    try { new Notification(icons[type] + ' ' + title, { body: msg, silent: false }); } catch(e) {}
+  }
+}
+
+function showToast(title, msg, type) {
+  var container = document.getElementById('toastContainer');
+  if (!container) return;
+  var id = 'toast-' + (++toastIdSeq);
+  var icons = { sl: '⚠️', entry: '📌', tp1: '🎯', tp2: '🏆' };
+  var icon = icons[type] || 'ℹ️';
+  var el = document.createElement('div');
+  el.className = 'toast notif-' + type;
+  el.id = id;
+  el.innerHTML =
+    '<span class="toast-icon">' + icon + '</span>' +
+    '<div class="toast-body"><div class="toast-title">' + title + '</div><div class="toast-msg">' + msg + '</div></div>' +
+    '<button class="toast-close" onclick="removeToast(\'' + id + '\')">&#x2715;</button>';
+  container.appendChild(el);
+  setTimeout(function(){ removeToast(id); }, 6000);
+}
+
+function removeToast(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('removing');
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 250);
+}
+
+function checkNotifications() {
+  if (!notifEnabled) return;
+  slots.forEach(function(slot) {
+    if (!slot.ticker) return;
+    var price = slot.mode === 'auto'
+      ? (livePrices[slot.ticker] && !livePrices[slot.ticker].error ? livePrices[slot.ticker].last : null)
+      : (slot.manualPrice || null);
+    if (!price) return;
+    var nl = getNL(slot.ticker);
+    var fmt = function(n){ return Number(n).toLocaleString('id-ID'); };
+
+    // SL Hit
+    if (slot.sl && price <= slot.sl) {
+      if (!nl.sl) { nl.sl = true; sendNotif('SL HIT: ' + slot.ticker, 'Harga ' + fmt(price) + ' menyentuh Stop Loss ' + fmt(slot.sl), 'sl'); }
+    } else { nl.sl = false; }
+
+    // Entry Zone
+    if (slot.entryLow && slot.entryHigh && price >= slot.entryLow && price <= slot.entryHigh) {
+      if (!nl.entry) { nl.entry = true; sendNotif('Entry Zone: ' + slot.ticker, 'Harga ' + fmt(price) + ' masuk zona entry ' + fmt(slot.entryLow) + '–' + fmt(slot.entryHigh), 'entry'); }
+    } else { nl.entry = false; }
+
+    // TP1
+    if (slot.tp1 && price >= slot.tp1) {
+      if (!nl.tp1) { nl.tp1 = true; sendNotif('TP1 Tercapai: ' + slot.ticker, 'Harga ' + fmt(price) + ' mencapai TP1 ' + fmt(slot.tp1), 'tp1'); }
+    } else { nl.tp1 = false; }
+
+    // TP2
+    if (slot.tp2 && price >= slot.tp2) {
+      if (!nl.tp2) { nl.tp2 = true; sendNotif('TP2 Tercapai: ' + slot.ticker, 'Harga ' + fmt(price) + ' mencapai TP2 ' + fmt(slot.tp2), 'tp2'); }
+    } else { nl.tp2 = false; }
+  });
+}
+
+// ============================================================
 // WATCHLIST
 // ============================================================
 var WL_KEY = 'kenz_watchlist';
@@ -1503,6 +1635,7 @@ async function logout(){
   wlRender();
   wlFetch();
   wlInitSearch();
+  updateNotifBtn();
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
 </script>
