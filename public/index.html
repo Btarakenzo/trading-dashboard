@@ -98,7 +98,7 @@
     .history-toggle-left { display:flex; align-items:center; gap:.5rem; font-size:.82rem; font-weight:800; }
     .history-toggle-arrow { font-size:.7rem; color:var(--text-muted); transition:transform .2s; }
     .history-toggle-arrow.open { transform:rotate(180deg); }
-    .history-body { display:none; margin-top:.6rem; display:none; }
+    .history-body { display:none; margin-top:.6rem; }
     .history-body.open { display:block; }
     .history-actions { display:flex; justify-content:flex-end; margin-bottom:.5rem; }
     .history-list { display:flex; flex-direction:column; gap:.45rem; }
@@ -331,8 +331,8 @@
       .header-right { gap: .35rem; flex-wrap: wrap; }
       .header-right .btn { padding: .32rem .55rem; font-size: .7rem; }
 
-      /* Progress bar */
-      .refresh-progress { top: 0; }
+      /* Progress bar: ikuti tinggi header */
+      .refresh-progress { top: 52px; }
 
       /* Stats row */
       .stats-row { grid-template-columns: 1fr 1fr; padding: .35rem .75rem; gap: .35rem; }
@@ -375,6 +375,10 @@
 
       /* Chart modal */
       #chartModal > div { padding: .75rem; border-radius: 10px; }
+      #chartContainer { min-height: 300px !important; }
+      #chartContainer > div { height: 300px !important; }
+      /* Admin/Dev tombol di header: lebih kecil */
+      .header-admin-btn { font-size: .65rem !important; padding: .28rem .42rem !important; }
     }
 
     @media (max-width: 480px) {
@@ -985,7 +989,6 @@ function autoSuggestLevels(si){
 }
 
 function selectStock(slotIdx,ticker){
-  if(!demoCheck()) return;
   // Reset levels saat ganti saham
   Object.assign(slots[slotIdx],{ticker:ticker,entryLow:0,entryHigh:0,sl:0,tp1:0,tp2:0});
   saveSlot(slotIdx);
@@ -1878,23 +1881,24 @@ async function wlFetch() {
     var res = await fetch('/api/prices?tickers=' + list.join(','));
     var json = await res.json();
     if (!json.prices) return;
+    var flashes = [];
     Object.keys(json.prices).forEach(function(t) {
       var prev = wlPrices[t] && wlPrices[t].last;
       var next = json.prices[t];
       wlPrices[t] = next;
-      // flash row on price change
       if (prev && next && !next.error && next.last !== prev) {
-        var row = document.getElementById('wlRow-' + t);
-        if (row) {
-          var cls = next.last > prev ? 'wl-flash-up' : 'wl-flash-down';
-          row.classList.remove('wl-flash-up','wl-flash-down');
-          void row.offsetWidth;
-          row.classList.add(cls);
-          setTimeout(function(){ row.classList.remove(cls); }, 600);
-        }
+        flashes.push({ t: t, cls: next.last > prev ? 'wl-flash-up' : 'wl-flash-down' });
       }
     });
-    wlRender();
+    wlRender(); // rebuild DOM first
+    flashes.forEach(function(f) { // then flash new elements
+      var row = document.getElementById('wlRow-' + f.t);
+      if (!row) return;
+      row.classList.remove('wl-flash-up','wl-flash-down');
+      void row.offsetWidth;
+      row.classList.add(f.cls);
+      setTimeout(function(){ row.classList.remove(f.cls); }, 600);
+    });
   } catch(e) { console.warn('WL fetch error:', e.message); }
   clearTimeout(wlTimer);
   wlTimer = setTimeout(wlFetch, 5000);
@@ -2038,13 +2042,13 @@ async function logout(){
     // Tampilkan link admin/dev jika punya akses
     if(me.role==='admin'||me.role==='developer'){
       var adminBtn=document.createElement('a');
-      adminBtn.href='/admin'; adminBtn.className='btn btn-ghost';
+      adminBtn.href='/admin'; adminBtn.className='btn btn-ghost header-admin-btn';
       adminBtn.style.fontSize='.75rem'; adminBtn.textContent='Admin';
       document.getElementById('headerUser').after(adminBtn);
     }
     if(me.role==='developer'){
       var devBtn=document.createElement('a');
-      devBtn.href='/developer'; devBtn.className='btn btn-ghost';
+      devBtn.href='/developer'; devBtn.className='btn btn-ghost header-admin-btn';
       devBtn.style.fontSize='.75rem'; devBtn.textContent='Dev';
       document.getElementById('headerUser').after(devBtn);
     }
