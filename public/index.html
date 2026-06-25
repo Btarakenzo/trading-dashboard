@@ -326,22 +326,26 @@
     .slot-empty p { margin-top: .5rem; font-size: .75rem; }
 
     /* ===== SIDE DRAWER ===== */
-    .side-drawer { position:fixed; inset:0; z-index:600; display:flex; justify-content:flex-end; pointer-events:none; }
+    .side-drawer { position:fixed; top:0; right:0; bottom:0; z-index:600; pointer-events:none; }
     .side-drawer.open { pointer-events:all; }
-    .drawer-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); opacity:0; transition:opacity .25s; }
-    .side-drawer.open .drawer-overlay { opacity:1; }
-    .drawer-panel { position:relative; width:500px; max-width:96vw; background:var(--bg); border-left:1px solid var(--border); display:flex; flex-direction:column; height:100%; transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); box-shadow:-8px 0 32px rgba(0,0,0,.45); }
+    /* Overlay: transparan di desktop, gelap di mobile */
+    .drawer-overlay { position:fixed; inset:0; background:transparent; opacity:1; transition:background .25s; }
+    .drawer-panel { position:absolute; top:0; right:0; bottom:0; width:370px; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .26s cubic-bezier(.4,0,.2,1); box-shadow:-6px 0 24px rgba(0,0,0,.35); }
     .side-drawer.open .drawer-panel { transform:translateX(0); }
-    .drawer-head { display:flex; align-items:center; justify-content:space-between; padding:.55rem .8rem; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); gap:.5rem; }
-    .drawer-tabs { display:flex; gap:.25rem; flex:1; }
-    .drawer-tab { background:transparent; border:1px solid transparent; border-radius:6px; padding:.3rem .6rem; font-size:.74rem; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .15s; white-space:nowrap; }
-    .drawer-tab:hover { color:var(--text); background:var(--surface2); }
+    .drawer-head { display:flex; align-items:center; justify-content:space-between; padding:.55rem .75rem; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface2); gap:.5rem; }
+    .drawer-tabs { display:flex; gap:.2rem; flex:1; flex-wrap:wrap; }
+    .drawer-tab { background:transparent; border:1px solid transparent; border-radius:6px; padding:.28rem .55rem; font-size:.72rem; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .drawer-tab:hover { color:var(--text); background:var(--surface); }
     .drawer-tab.active { background:rgba(99,102,241,.15); border-color:rgba(99,102,241,.3); color:var(--accent); }
     .drawer-body { flex:1; overflow-y:auto; }
-    .drawer-pane { padding:.85rem; display:none; }
+    .drawer-pane { padding:.75rem; display:none; }
     .drawer-pane.active { display:block; }
-    .drawer-pane-title { font-size:.8rem; font-weight:800; margin-bottom:.7rem; display:flex; align-items:center; justify-content:space-between; }
-    @media(max-width:520px){ .drawer-panel { width:100vw; max-width:100vw; } }
+    .drawer-pane-title { font-size:.78rem; font-weight:800; margin-bottom:.65rem; display:flex; align-items:center; justify-content:space-between; }
+    @media(max-width:640px){
+      .drawer-overlay { background:rgba(0,0,0,.55); }
+      .side-drawer.open .drawer-overlay { background:rgba(0,0,0,.55); }
+      .drawer-panel { width:92vw; }
+    }
 
     /* ===== HEATMAP SEKTOR ===== */
     .heatmap-section { max-width:1100px; margin:.5rem auto 0; padding:0 1.25rem; }
@@ -539,7 +543,7 @@
     <button class="btn btn-secondary" onclick="analisisSemua()">&#x26A1; Analisis</button>
     <button class="btn btn-ghost" onclick="salinRingkasan()">&#x1F4CB; Salin</button>
     <button class="btn btn-ghost" id="notifBtn" onclick="toggleNotif()" title="Notifikasi Harga">&#x1F514;<span class="notif-badge" id="alertBadge"></span></button>
-    <button class="btn btn-secondary" style="font-size:.75rem" onclick="openDrawer('portfolio')" id="drawerBtn">&#x1F4CB; Saya</button>
+    <button class="btn btn-secondary" style="font-size:.75rem" onclick="openDrawer('portfolio')" id="drawerBtn">&#x1F464; Akun</button>
     <button class="btn btn-ghost" style="font-size:.75rem;color:var(--red)" onclick="logout()">Keluar</button>
   </div>
 </header>
@@ -690,6 +694,7 @@
         <button class="drawer-tab active" id="dtab-portfolio" onclick="switchTab('portfolio')">&#x1F4BC; Portfolio <span id="portCount" style="font-size:.6rem;font-weight:400"></span></button>
         <button class="drawer-tab" id="dtab-riwayat" onclick="switchTab('riwayat')">&#x1F4D6; Riwayat <span id="histCount" style="font-size:.6rem;font-weight:400"></span></button>
         <button class="drawer-tab" id="dtab-alert" onclick="switchTab('alert')">&#x1F6A8; Alert</button>
+        <button class="drawer-tab" id="dtab-akun" onclick="switchTab('akun')">&#x2699;&#xFE0F; Akun</button>
       </div>
       <button class="btn btn-ghost" style="padding:.3rem .55rem;font-size:.88rem;flex-shrink:0" onclick="closeDrawer()">&#x2715;</button>
     </div>
@@ -746,6 +751,24 @@
           <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="alertAdd()">+ Tambah</button>
         </div>
         <div class="alert-list" id="alertList"><div class="alert-empty">Belum ada alert. Tambahkan di atas.</div></div>
+      </div>
+
+      <!-- Tab: Akun -->
+      <div class="drawer-pane" id="pane-akun">
+        <div class="drawer-pane-title">&#x2699;&#xFE0F; Pengaturan Akun</div>
+        <div id="akunInfo" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.65rem .85rem;margin-bottom:.85rem;font-size:.78rem">
+          <div style="color:var(--text-muted);font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:.3rem">Login sebagai</div>
+          <div style="font-weight:800;font-size:.9rem" id="akunNama">—</div>
+          <div style="font-size:.7rem;color:var(--text-muted);margin-top:.1rem" id="akunRole">—</div>
+        </div>
+        <div style="font-size:.75rem;font-weight:800;margin-bottom:.6rem">&#x1F512; Ganti Password</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div class="port-field" style="width:100%"><label>Password Lama</label><input type="password" id="pwOldInp" placeholder="Password saat ini" style="width:100%"></div>
+          <div class="port-field" style="width:100%"><label>Password Baru</label><input type="password" id="pwNewInp" placeholder="Min. 6 karakter" style="width:100%"></div>
+          <div class="port-field" style="width:100%"><label>Konfirmasi Password Baru</label><input type="password" id="pwConfInp" placeholder="Ulangi password baru" style="width:100%"></div>
+          <button class="btn btn-secondary" style="font-size:.78rem;margin-top:.25rem;align-self:flex-start" onclick="gantiPassword()">&#x1F4BE; Simpan Password</button>
+          <div id="pwMsg" style="font-size:.72rem;display:none"></div>
+        </div>
       </div>
 
     </div>
@@ -2026,15 +2049,54 @@ function closeDrawer() {
   document.getElementById('sideDrawer').classList.remove('open');
 }
 function switchTab(tab) {
-  ['portfolio','riwayat','alert'].forEach(function(t) {
+  ['portfolio','riwayat','alert','akun'].forEach(function(t) {
     document.getElementById('dtab-'+t).classList.toggle('active', t===tab);
     document.getElementById('pane-'+t).classList.toggle('active', t===tab);
   });
+  if (tab === 'akun') akunLoad();
 }
 // Backward compat
 function openAlerts()  { openDrawer('alert'); }
 function closeAlerts() { closeDrawer(); }
 function toggleHistory() { openDrawer('riwayat'); }
+
+async function akunLoad() {
+  try {
+    var r = await fetch('/api/auth/me');
+    if (!r.ok) return;
+    var u = await r.json();
+    document.getElementById('akunNama').textContent = u.name || u.username || '—';
+    document.getElementById('akunRole').textContent = 'Role: ' + (u.role || '—');
+  } catch(e) {}
+}
+
+async function gantiPassword() {
+  var oldPw  = document.getElementById('pwOldInp').value;
+  var newPw  = document.getElementById('pwNewInp').value;
+  var confPw = document.getElementById('pwConfInp').value;
+  var msg    = document.getElementById('pwMsg');
+  function showPwMsg(txt, ok) {
+    msg.textContent = txt;
+    msg.style.color = ok ? 'var(--green)' : 'var(--red)';
+    msg.style.display = 'block';
+  }
+  if (!oldPw || !newPw || !confPw) return showPwMsg('Semua field wajib diisi.', false);
+  if (newPw.length < 6) return showPwMsg('Password baru minimal 6 karakter.', false);
+  if (newPw !== confPw) return showPwMsg('Konfirmasi password tidak cocok.', false);
+  try {
+    var r = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({oldPassword: oldPw, newPassword: newPw})
+    });
+    var d = await r.json();
+    if (!r.ok) return showPwMsg(d.error || 'Gagal mengganti password.', false);
+    showPwMsg('Password berhasil diperbarui.', true);
+    document.getElementById('pwOldInp').value = '';
+    document.getElementById('pwNewInp').value = '';
+    document.getElementById('pwConfInp').value = '';
+  } catch(e) { showPwMsg('Terjadi kesalahan koneksi.', false); }
+}
 
 function alertAdd() {
   var ticker = document.getElementById('aTickerInp').value.trim().toUpperCase();

@@ -166,6 +166,20 @@ app.get('/api/auth/me', authRequired(), (req, res) => {
   res.json({ id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role });
 });
 
+app.post('/api/auth/change-password', authRequired(), async (req, res) => {
+  const { oldPassword, newPassword } = req.body || {};
+  if (!oldPassword || !newPassword) return res.status(400).json({ error: 'Semua field wajib diisi' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Password baru minimal 6 karakter' });
+  const users = readUsers();
+  const user = users.find(u => u.id === req.user.id);
+  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+  const valid = await bcrypt.compare(oldPassword, user.password);
+  if (!valid) return res.status(401).json({ error: 'Password lama tidak sesuai' });
+  user.password = await bcrypt.hash(newPassword, 10);
+  writeUsers(users);
+  res.json({ ok: true });
+});
+
 // ── Protected pages ──────────────────────────────────────────────────────────
 app.get('/', pageGuard(['user','admin','developer']), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
