@@ -582,16 +582,37 @@
 
 <main>
   <div class="ihsg-panel">
-    <div class="ihsg-inputs">
-      <div class="ihsg-field"><label>IHSG Sekarang</label><input type="number" id="ihsgVal" placeholder="misal: 6000" oninput="analisisMarket()"></div>
-      <div class="ihsg-field"><label>IHSG Kemarin</label><input type="number" id="ihsgRef" placeholder="misal: 7200" oninput="analisisMarket()"></div>
-      <div class="ihsg-field"><label>Volume (M)</label><input type="number" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()"></div>
+    <!-- Live IHSG display -->
+    <div class="ihsg-live">
+      <div class="ihsg-live-label">&#x1F4C8; IHSG Sekarang</div>
+      <input type="number" id="ihsgVal" class="ihsg-live-val" placeholder="—" oninput="analisisMarket()" title="Auto-update dari pasar, atau isi manual">
+      <div class="ihsg-live-change" id="ihsgChange">menunggu data…</div>
     </div>
+
+    <div class="ihsg-divider"></div>
+
+    <!-- Input Kemarin + Volume -->
+    <div class="ihsg-inputs">
+      <div class="ihsg-field">
+        <label>&#x1F4C5; IHSG Kemarin</label>
+        <input type="number" id="ihsgRef" placeholder="misal: 5990" oninput="analisisMarket()">
+      </div>
+      <div class="ihsg-field">
+        <label>&#x1F4CA; Volume (M)</label>
+        <input type="number" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()">
+      </div>
+    </div>
+
+    <div class="ihsg-divider"></div>
+
+    <!-- Status kondisi market -->
     <div class="market-status">
       <div class="market-badge neutral" id="marketBadge">&#x23FA; Masukkan IHSG</div>
-      <div class="market-note" id="marketNote">Isi IHSG hari ini dan kemarin untuk analisis kondisi market.</div>
+      <div class="market-note" id="marketNote">Isi IHSG kemarin untuk analisis kondisi market.</div>
     </div>
-    <div class="refresh-bar">
+
+    <!-- Refresh status -->
+    <div class="refresh-bar" style="margin-left:auto">
       <span class="refresh-dot" id="refreshDot"></span>
       <span id="refreshStatus">Harga belum dimuat</span>
       <button class="btn btn-ghost" style="font-size:.72rem;padding:.3rem .6rem" onclick="fetchPrices()">&#x21BB;</button>
@@ -1290,6 +1311,18 @@ async function fetchPricesFor(tickers){
       var inpVol=document.getElementById('volMarket');
       if(inpVol&&inpVol!==document.activeElement&&ihsgData.volume)
         inpVol.value=Math.round(ihsgData.volume/1000000);
+      // Update change indicator
+      var chgEl=document.getElementById('ihsgChange');
+      if(chgEl){
+        var cp=ihsgData.changePct;
+        if(cp!==0){
+          var arrow=cp>0?'▲':'▼'; var sign=cp>0?'+':'';
+          chgEl.textContent=arrow+' '+sign+cp.toFixed(2)+'%  ('+( cp>0?'+':'')+Math.round(ihsgData.change).toLocaleString('id-ID')+')';
+          chgEl.className='ihsg-live-change '+(cp>0?'up':'down');
+        } else {
+          chgEl.textContent='▬ 0.00%'; chgEl.className='ihsg-live-change';
+        }
+      }
       analisisMarket();
     }
     // Update price sections for auto-mode slots
