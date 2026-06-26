@@ -585,7 +585,7 @@
     <!-- Live IHSG display -->
     <div class="ihsg-live">
       <div class="ihsg-live-label">&#x1F4C8; IHSG Sekarang</div>
-      <input type="number" id="ihsgVal" class="ihsg-live-val" placeholder="—" oninput="analisisMarket()" title="Auto-update dari pasar, atau isi manual">
+      <input type="text" inputmode="decimal" id="ihsgVal" class="ihsg-live-val" placeholder="—" oninput="analisisMarket()" title="Auto-update dari pasar, atau isi manual" autocomplete="off">
       <div class="ihsg-live-change" id="ihsgChange">menunggu data…</div>
     </div>
 
@@ -595,11 +595,11 @@
     <div class="ihsg-inputs">
       <div class="ihsg-field">
         <label>&#x1F4C5; IHSG Kemarin</label>
-        <input type="number" id="ihsgRef" placeholder="misal: 5990" oninput="analisisMarket()">
+        <input type="text" inputmode="decimal" id="ihsgRef" placeholder="misal: 5990" oninput="analisisMarket()" autocomplete="off">
       </div>
       <div class="ihsg-field">
         <label>&#x1F4CA; Volume (M)</label>
-        <input type="number" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()">
+        <input type="text" inputmode="decimal" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()" autocomplete="off">
       </div>
     </div>
 
@@ -1315,12 +1315,18 @@ async function fetchPricesFor(tickers){
       var chgEl=document.getElementById('ihsgChange');
       if(chgEl){
         var cp=ihsgData.changePct;
+        var newTxt, newCls;
         if(cp!==0){
           var arrow=cp>0?'▲':'▼'; var sign=cp>0?'+':'';
-          chgEl.textContent=arrow+' '+sign+cp.toFixed(2)+'%  ('+( cp>0?'+':'')+Math.round(ihsgData.change).toLocaleString('id-ID')+')';
-          chgEl.className='ihsg-live-change '+(cp>0?'up':'down');
+          newTxt=arrow+' '+sign+cp.toFixed(2)+'%  '+sign+Math.round(ihsgData.change).toLocaleString('id-ID')+' poin';
+          newCls='ihsg-live-change '+(cp>0?'up':'down');
         } else {
-          chgEl.textContent='▬ 0.00%'; chgEl.className='ihsg-live-change';
+          newTxt='▬  0.00%'; newCls='ihsg-live-change';
+        }
+        if(chgEl.textContent!==newTxt){
+          chgEl.className=newCls+' updating';
+          chgEl.textContent=newTxt;
+          setTimeout(function(){ chgEl.classList.remove('updating'); },400);
         }
       }
       analisisMarket();
