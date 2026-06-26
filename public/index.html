@@ -986,7 +986,7 @@ function analisisMarket() {
   var ref=parseFloat(document.getElementById('ihsgRef').value);
   var vol=parseFloat(document.getElementById('volMarket').value);
   var badge=document.getElementById('marketBadge'), note=document.getElementById('marketNote');
-  if(!now||!ref){badge.className='market-badge neutral';badge.innerHTML='&#x23FA; Masukkan IHSG';note.textContent='Isi IHSG hari ini dan kemarin untuk analisis.';return;}
+  if(!now||!ref){badge.className='market-badge neutral';badge.innerHTML='&#x23FA; Masukkan IHSG';note.textContent='Isi IHSG kemarin untuk melihat analisis kondisi market.';return;}
   var pct=((now-ref)/ref)*100, kondisi,emoji,cls,txt;
   if(pct>=0.5)      {kondisi='BULLISH';  emoji='&#x1F7E2;';cls='bullish'; txt='Market naik '+pct.toFixed(2)+'%. Momentum positif.';}
   else if(pct<=-0.5){kondisi='BEARISH';  emoji='&#x1F534;';cls='bearish'; txt='Market turun '+Math.abs(pct).toFixed(2)+'%. Perketat SL.';}
@@ -1438,21 +1438,41 @@ async function fetchCrypto(){
   try{
     var res=await fetch('/api/crypto'), json=await res.json();
     if(!res.ok||!json.data) return;
-    var html=json.data.map(function(d){
-      var dir=d.changePct>0?'up':d.changePct<0?'down':'flat';
-      var sign=d.changePct>0?'+':'';
-      var arrow=d.changePct>0?'▲':d.changePct<0?'▼':'▬';
-      var priceStr=d.price>=1000
-        ? '$'+d.price.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
-        : '$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
-      return '<span class="ticker-item">'+
-        '<span class="ticker-item-name">'+d.short+'</span>'+
-        '<span class="ticker-item-price">'+priceStr+'</span>'+
-        '<span class="ticker-item-pct '+dir+'">'+arrow+' '+sign+d.changePct.toFixed(2)+'%</span>'+
-      '</span>';
-    }).join('');
     var track=document.getElementById('cryptoTrack');
-    track.innerHTML=html+html;
+    var existingItems=track.querySelectorAll('.ticker-item');
+    if(existingItems.length===json.data.length*2){
+      // Update in-place — animasi tidak terputus
+      json.data.forEach(function(d,i){
+        var dir=d.changePct>0?'up':d.changePct<0?'down':'flat';
+        var arrow=d.changePct>0?'▲':d.changePct<0?'▼':'▬';
+        var sign=d.changePct>0?'+':'';
+        var pctTxt=arrow+' '+sign+d.changePct.toFixed(2)+'%';
+        var priceStr=d.price>=1000
+          ?'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
+          :'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+        [existingItems[i],existingItems[i+json.data.length]].forEach(function(el){
+          if(!el) return;
+          el.querySelector('.ticker-item-price').textContent=priceStr;
+          var pctEl=el.querySelector('.ticker-item-pct');
+          pctEl.textContent=pctTxt; pctEl.className='ticker-item-pct '+dir;
+        });
+      });
+    } else {
+      var html=json.data.map(function(d){
+        var dir=d.changePct>0?'up':d.changePct<0?'down':'flat';
+        var sign=d.changePct>0?'+':'';
+        var arrow=d.changePct>0?'▲':d.changePct<0?'▼':'▬';
+        var priceStr=d.price>=1000
+          ?'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
+          :'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+        return '<span class="ticker-item">'+
+          '<span class="ticker-item-name">'+d.short+'</span>'+
+          '<span class="ticker-item-price">'+priceStr+'</span>'+
+          '<span class="ticker-item-pct '+dir+'">'+arrow+' '+sign+d.changePct.toFixed(2)+'%</span>'+
+        '</span>';
+      }).join('');
+      track.innerHTML=html+html;
+    }
   }catch(e){console.warn('Crypto error:',e.message);}
   setTimeout(fetchCrypto,60000);
 }
@@ -1622,7 +1642,6 @@ function updateDemoBanner(count) {
 
 function analisisSemua(){
   if(!demoCheck()) return;
-  var panel=document.getElementById('summaryPanel');
   var statEl=document.getElementById('summaryStats');
   var listEl=document.getElementById('summaryList');
   var totalModal=0,totalRugi=0,totalProfit=0;
@@ -2366,14 +2385,6 @@ function toggleHistDetail(id) {
   if (el) el.classList.toggle('open');
 }
 
-function toggleHistory() {
-  var body  = document.getElementById('historyBody');
-  var arrow = document.getElementById('histArrow');
-  if (!body) return;
-  var isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  if (arrow) arrow.classList.toggle('open', !isOpen);
-}
 
 function hapusRiwayat(id) {
   var list = histLoad().filter(function(e){ return e.id !== id; });
