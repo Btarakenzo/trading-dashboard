@@ -801,6 +801,13 @@
 </footer>
 
 <script>
+// HTML-escape untuk mencegah XSS pada innerHTML
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ============================================================
 // IDX STOCKS DATABASE
 // ============================================================
@@ -1985,7 +1992,7 @@ function portRender() {
     totalCost += cost;
     if (nowVal) totalNow += nowVal;
     return '<tr id="portRow-'+pos.id+'">'+
-      '<td><div class="port-ticker">'+pos.ticker+'</div><div class="port-name">'+stock.n+'</div></td>'+
+      '<td><div class="port-ticker">'+esc(pos.ticker)+'</div><div class="port-name">'+esc(stock.n)+'</div></td>'+
       '<td style="font-variant-numeric:tabular-nums">'+pos.buyPrice.toLocaleString('id-ID')+'</td>'+
       '<td style="font-variant-numeric:tabular-nums">'+(curPrice ? curPrice.toLocaleString('id-ID') : '<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td>'+pos.lot+' lot</td>'+
@@ -2152,9 +2159,9 @@ function alertRender() {
     var statusCls = a.triggered ? 'triggered' : 'active';
     var statusTxt = a.triggered ? '✓ Triggered' : 'Aktif';
     return '<div class="alert-item '+cls+'" id="alert-item-'+a.id+'">'+
-      '<span class="alert-a-ticker">'+a.ticker+'</span>'+
+      '<span class="alert-a-ticker">'+esc(a.ticker)+'</span>'+
       '<span class="alert-a-cond">'+condTxt+' <b>Rp '+Number(a.price).toLocaleString('id-ID')+'</b>'+
-        (a.label ? ' <span class="alert-a-label">— '+a.label+'</span>' : '')+
+        (a.label ? ' <span class="alert-a-label">— '+esc(a.label)+'</span>' : '')+
       '</span>'+
       '<span class="alert-a-status '+statusCls+'">'+statusTxt+'</span>'+
       '<button class="alert-del" onclick="alertRemove('+a.id+')">&#x2715;</button>'+
@@ -2262,14 +2269,14 @@ function renderHistory() {
 
   listEl.innerHTML = list.map(function(entry) {
     var pills = entry.items.map(function(it) {
-      return '<span class="history-pill '+it.cls+'">'+it.ticker+' · '+it.verdict+'</span>';
+      return '<span class="history-pill '+it.cls+'">'+esc(it.ticker)+' · '+esc(it.verdict)+'</span>';
     }).join('');
     var detail = entry.items.map(function(it) {
       var fmt = function(n){ return n ? Number(n).toLocaleString('id-ID') : '—'; };
       return '<div class="history-detail-row">'+
         '<div>'+
-          '<span style="font-weight:800;color:var(--accent)">'+it.ticker+'</span>'+
-          '<span style="color:var(--text-muted);margin-left:.4rem">'+it.name+'</span>'+
+          '<span style="font-weight:800;color:var(--accent)">'+esc(it.ticker)+'</span>'+
+          '<span style="color:var(--text-muted);margin-left:.4rem">'+esc(it.name)+'</span>'+
         '</div>'+
         '<div style="display:flex;gap:.75rem;align-items:center">'+
           '<span style="color:var(--text-muted)">'+fmt(it.price)+'</span>'+
@@ -2371,8 +2378,8 @@ function wlRender() {
     var sign = pct > 0 ? '+' : '';
     var pctStr = pct !== null ? arrow + ' ' + sign + pct.toFixed(2) + '%' : '—';
     var chgStr = chg !== null ? (chg >= 0 ? '+' : '') + chg.toLocaleString('id-ID') : '';
-    return '<tr id="wlRow-' + ticker + '">'+
-      '<td><div class="wl-ticker">' + ticker + '</div><div class="wl-name">' + stock.n + '</div></td>'+
+    return '<tr id="wlRow-' + esc(ticker) + '">'+
+      '<td><div class="wl-ticker">' + esc(ticker) + '</div><div class="wl-name">' + esc(stock.n) + '</div></td>'+
       '<td><span class="wl-price">' + priceStr + '</span></td>'+
       '<td><span class="wl-chg ' + dir + '">' + pctStr + '</span><div style="font-size:.65rem;color:var(--text-muted)">' + chgStr + '</div></td>'+
       '<td><span style="font-size:.65rem;color:var(--text-muted)">' + (stock.s !== '—' ? stock.s : '') + '</span></td>'+

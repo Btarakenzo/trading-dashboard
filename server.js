@@ -3,6 +3,7 @@ const express    = require('express');
 const helmet     = require('helmet');
 const path       = require('path');
 const fs         = require('fs');
+const crypto     = require('crypto');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
 const cookieParser = require('cookie-parser');
@@ -10,11 +11,17 @@ const rateLimit  = require('express-rate-limit');
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+if (!process.env.JWT_SECRET) {
+  if (IS_PROD) { console.error('[FATAL] JWT_SECRET tidak diset di .env. Server dihentikan.'); process.exit(1); }
+  console.warn('[WARN] JWT_SECRET tidak diset! Gunakan .env — JANGAN pakai ini di production.');
+}
+
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET   = process.env.JWT_SECRET || 'kenzproject_fallback_secret';
+const JWT_SECRET   = process.env.JWT_SECRET || 'kenzproject_dev_only_fallback';
 const JWT_EXPIRES  = '24h';
 const USERS_PATH   = path.join(__dirname, 'data', 'users.json');
+const BCRYPT_COST  = 12;
 
 // ── Cache ──────────────────────────────────────────────────────────────────
 const priceCache  = { data: {}, ts: 0 };
@@ -64,6 +71,14 @@ function readUsers() {
 function writeUsers(users) {
   fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2), 'utf8');
 }
+// Mutex untuk mencegah race condition pada read-modify-write users.json
+let _usersMutex = Promise.resolve();
+function withUserLock(fn) {
+  const prev = _usersMutex;
+  let release;
+  _usersMutex = new Promise(r => { release = r; });
+  return prev.then(fn).finally(release);
+}
 
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(helmet({
@@ -83,14 +98,19 @@ app.use(helmet({
 app.use(express.json({ limit: '20kb' }));
 app.use(cookieParser());
 
-// Rate limiting — blokir brute force login (max 10 percobaan / 15 menit per IP)
+// Rate limiting
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
+  windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
   skipSuccessfulRequests: true,
+});
+const priceLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Terlalu banyak permintaan harga. Coba lagi sebentar lagi.' },
+});
+const changePwLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Terlalu banyak percobaan ganti password. Coba lagi dalam 15 menit.' },
 });
 
 // Auth middleware
@@ -166,18 +186,20 @@ app.get('/api/auth/me', authRequired(), (req, res) => {
   res.json({ id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role });
 });
 
-app.post('/api/auth/change-password', authRequired(), async (req, res) => {
+app.post('/api/auth/change-password', changePwLimiter, authRequired(), async (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
   if (!oldPassword || !newPassword) return res.status(400).json({ error: 'Semua field wajib diisi' });
   if (newPassword.length < 6) return res.status(400).json({ error: 'Password baru minimal 6 karakter' });
-  const users = readUsers();
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
-  const valid = await bcrypt.compare(oldPassword, user.password);
-  if (!valid) return res.status(401).json({ error: 'Password lama tidak sesuai' });
-  user.password = await bcrypt.hash(newPassword, 10);
-  writeUsers(users);
-  res.json({ ok: true });
+  return withUserLock(async () => {
+    const users = readUsers();
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+    const valid = await bcrypt.compare(oldPassword, user.password);
+    if (!valid) return res.status(401).json({ error: 'Password lama tidak sesuai' });
+    user.password = await bcrypt.hash(newPassword, BCRYPT_COST);
+    writeUsers(users);
+    res.json({ ok: true });
+  });
 });
 
 // ── Protected pages ──────────────────────────────────────────────────────────
@@ -208,47 +230,59 @@ app.post('/api/users', authRequired(['admin','developer']), async (req, res) => 
   const { username, password, name, role } = req.body || {};
   if (!username || !password || !name || !role) return res.status(400).json({ error: 'Semua field wajib diisi' });
   if (!['user','admin','developer'].includes(role)) return res.status(400).json({ error: 'Role tidak valid' });
-  const users = readUsers();
-  if (users.find(u => u.username === username)) return res.status(409).json({ error: 'Username sudah digunakan' });
-  const id = String(Date.now());
-  const hashed = await bcrypt.hash(password, 10);
-  users.push({ id, username, password: hashed, name, role });
-  writeUsers(users);
-  res.json({ ok: true, id });
+  if (password.length < 6) return res.status(400).json({ error: 'Password minimal 6 karakter' });
+  if (name.length > 80 || username.length > 40) return res.status(400).json({ error: 'Input terlalu panjang' });
+  return withUserLock(async () => {
+    const users = readUsers();
+    if (users.find(u => u.username === username)) return res.status(409).json({ error: 'Username sudah digunakan' });
+    const id = crypto.randomUUID();
+    const hashed = await bcrypt.hash(password, BCRYPT_COST);
+    users.push({ id, username, password: hashed, name, role });
+    writeUsers(users);
+    res.json({ ok: true, id });
+  });
 });
 
 app.put('/api/users/:id', authRequired(['admin','developer']), async (req, res) => {
-  const users = readUsers();
-  const idx = users.findIndex(u => u.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'User tidak ditemukan' });
-  // Developer-only can change own/other developer roles
-  if (users[idx].role === 'developer' && req.user.role !== 'developer')
-    return res.status(403).json({ error: 'Tidak bisa edit akun developer' });
-  const { name, role, password } = req.body || {};
-  if (name) users[idx].name = name;
-  if (role) {
-    if (!['user','admin','developer'].includes(role))
-      return res.status(400).json({ error: 'Role tidak valid' });
-    // Hanya developer yang boleh set role developer
-    if (role === 'developer' && req.user.role !== 'developer')
-      return res.status(403).json({ error: 'Hanya developer yang dapat menetapkan role developer' });
-    users[idx].role = role;
-  }
-  if (password) users[idx].password = await bcrypt.hash(password, 10);
-  writeUsers(users);
-  res.json({ ok: true });
+  return withUserLock(async () => {
+    const users = readUsers();
+    const idx = users.findIndex(u => u.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'User tidak ditemukan' });
+    if (users[idx].role === 'developer' && req.user.role !== 'developer')
+      return res.status(403).json({ error: 'Tidak bisa edit akun developer' });
+    const { name, role, password } = req.body || {};
+    if (name) {
+      if (name.length > 80) return res.status(400).json({ error: 'Nama terlalu panjang' });
+      users[idx].name = name;
+    }
+    if (role) {
+      if (!['user','admin','developer'].includes(role))
+        return res.status(400).json({ error: 'Role tidak valid' });
+      if (role === 'developer' && req.user.role !== 'developer')
+        return res.status(403).json({ error: 'Hanya developer yang dapat menetapkan role developer' });
+      users[idx].role = role;
+    }
+    if (password) {
+      if (password.length < 6) return res.status(400).json({ error: 'Password minimal 6 karakter' });
+      users[idx].password = await bcrypt.hash(password, BCRYPT_COST);
+    }
+    writeUsers(users);
+    res.json({ ok: true });
+  });
 });
 
 app.delete('/api/users/:id', authRequired(['admin','developer']), (req, res) => {
-  let users = readUsers();
-  const target = users.find(u => u.id === req.params.id);
-  if (!target) return res.status(404).json({ error: 'User tidak ditemukan' });
-  if (target.role === 'developer' && req.user.role !== 'developer')
-    return res.status(403).json({ error: 'Tidak bisa hapus akun developer' });
-  if (target.id === req.user.id) return res.status(400).json({ error: 'Tidak bisa hapus akun sendiri' });
-  users = users.filter(u => u.id !== req.params.id);
-  writeUsers(users);
-  res.json({ ok: true });
+  return withUserLock(async () => {
+    let users = readUsers();
+    const target = users.find(u => u.id === req.params.id);
+    if (!target) return res.status(404).json({ error: 'User tidak ditemukan' });
+    if (target.role === 'developer' && req.user.role !== 'developer')
+      return res.status(403).json({ error: 'Tidak bisa hapus akun developer' });
+    if (target.id === req.user.id) return res.status(400).json({ error: 'Tidak bisa hapus akun sendiri' });
+    users = users.filter(u => u.id !== req.params.id);
+    writeUsers(users);
+    res.json({ ok: true });
+  });
 });
 
 // ── Developer API: system info ────────────────────────────────────────────────
@@ -278,9 +312,10 @@ app.get('/api/idx-stocks', (req, res) => {
 });
 
 // ── Price & Global API (protected) ───────────────────────────────────────────
-app.get('/api/prices', async (req, res) => {
+app.get('/api/prices', priceLimiter, async (req, res) => {
   const tickers = (req.query.tickers || '').split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
   if (!tickers.length) return res.status(400).json({ error: 'Parameter tickers wajib diisi' });
+  if (tickers.length > 50) return res.status(400).json({ error: 'Maksimal 50 ticker per permintaan' });
   const now = Date.now();
   if (tickers.every(t => priceCache.data[t]) && now - priceCache.ts < PRICE_CACHE_TTL) {
     const cached = {};
@@ -324,7 +359,7 @@ const GLOBAL_SYMBOLS = [
   { symbol: 'USDIDR=X', name: 'USD/IDR' },
 ];
 
-app.get('/api/global', async (req, res) => {
+app.get('/api/global', priceLimiter, async (req, res) => {
   const now = Date.now();
   if (globalCache.data && now - globalCache.ts < GLOBAL_CACHE_TTL)
     return res.json({ data: globalCache.data });
@@ -359,7 +394,7 @@ const CRYPTO_SYMBOLS = [
 const cryptoCache = { data: null, ts: 0 };
 const CRYPTO_CACHE_TTL = 30 * 1000;
 
-app.get('/api/crypto', async (req, res) => {
+app.get('/api/crypto', priceLimiter, async (req, res) => {
   const now = Date.now();
   if (cryptoCache.data && now - cryptoCache.ts < CRYPTO_CACHE_TTL)
     return res.json({ data: cryptoCache.data });
