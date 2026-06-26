@@ -2049,7 +2049,7 @@ function portRender() {
   var sumEl = document.getElementById('portSummary');
   if (countEl) countEl.textContent = list.length ? '(' + list.length + ')' : '';
   if (!list.length) {
-    body.innerHTML = '<div class="port-empty">Belum ada posisi. Klik "+ Tambah Posisi" untuk mulai tracking.</div>';
+    body.innerHTML = '<div class="port-empty">Belum ada posisi. Klik "+ Tambah" untuk mulai tracking.</div>';
     if (sumEl) sumEl.style.display = 'none';
     return;
   }
