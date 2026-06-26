@@ -210,20 +210,22 @@ app.post('/api/auth/change-password', changePwLimiter, authRequired(), async (re
 });
 
 // ── Protected pages ──────────────────────────────────────────────────────────
-app.get('/', pageGuard(['user','admin','developer']), (req, res) => {
+const noCache = (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); };
+
+app.get('/', pageGuard(['user','admin','developer']), noCache, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/admin', pageGuard(['admin','developer']), (req, res) => {
+app.get('/admin', pageGuard(['admin','developer']), noCache, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/developer', pageGuard(['developer']), (req, res) => {
+app.get('/developer', pageGuard(['developer']), noCache, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'developer.html'));
 });
 
 // Demo publik — tanpa login, hanya /api/prices & /api/global yang diizinkan via flag
-app.get('/demo', (req, res) => {
+app.get('/demo', noCache, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

@@ -598,8 +598,8 @@
         <input type="text" inputmode="decimal" id="ihsgRef" placeholder="misal: 5990" oninput="analisisMarket()" autocomplete="off">
       </div>
       <div class="ihsg-field">
-        <label>&#x1F4CA; Volume (M)</label>
-        <input type="text" inputmode="decimal" id="volMarket" placeholder="misal: 18500" oninput="analisisMarket()" autocomplete="off">
+        <label>&#x1F4CA; Volume Lot <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);letter-spacing:0">· Yahoo Finance</span></label>
+        <input type="text" inputmode="decimal" id="volMarket" placeholder="auto…" oninput="analisisMarket()" autocomplete="off" title="Auto-diisi dari Yahoo Finance (regularMarketVolume ÷ 1jt lot). Bisa diisi manual.">
       </div>
     </div>
 
@@ -994,7 +994,7 @@ function analisisMarket() {
   if(pct>=0.5)      {kondisi='BULLISH';  emoji='&#x1F7E2;';cls='bullish'; txt='Market naik '+pct.toFixed(2)+'%. Momentum positif.';}
   else if(pct<=-0.5){kondisi='BEARISH';  emoji='&#x1F534;';cls='bearish'; txt='Market turun '+Math.abs(pct).toFixed(2)+'%. Perketat SL.';}
   else               {kondisi='SIDEWAYS'; emoji='&#x1F7E1;';cls='sideways';txt='IHSG sideways ('+(pct>=0?'+':'')+pct.toFixed(2)+'%). Tunggu konfirmasi.';}
-  if(vol) txt+=vol>=15000?' Volume tinggi — konfirmasi kuat.'  :' Volume rendah — hati-hati false breakout.';
+  if(vol) txt+=vol>=15000?' Volume lot tinggi ('+Math.round(vol/1000)+'M lot) — konfirmasi kuat.'  :' Volume lot rendah ('+Math.round(vol/1000)+'M lot) — hati-hati false breakout.';
   badge.className='market-badge '+cls; badge.innerHTML=emoji+' '+kondisi; note.textContent=txt;
 }
 
