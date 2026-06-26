@@ -104,9 +104,16 @@ const loginLimiter = rateLimit({
   message: { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
   skipSuccessfulRequests: true,
 });
+// /api/prices dipanggil 3x per 5 detik (card+wl+portfolio) = ~36/mnt per tab
+// Limit 300/mnt aman untuk 5+ tab sekaligus, tetap blok bot/abuse
 const priceLimiter = rateLimit({
-  windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  windowMs: 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Terlalu banyak permintaan harga. Coba lagi sebentar lagi.' },
+});
+// /api/global dan /api/crypto hanya dipanggil tiap 60 detik
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Terlalu banyak permintaan data global.' },
 });
 const changePwLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false,
@@ -359,7 +366,7 @@ const GLOBAL_SYMBOLS = [
   { symbol: 'USDIDR=X', name: 'USD/IDR' },
 ];
 
-app.get('/api/global', priceLimiter, async (req, res) => {
+app.get('/api/global', globalLimiter, async (req, res) => {
   const now = Date.now();
   if (globalCache.data && now - globalCache.ts < GLOBAL_CACHE_TTL)
     return res.json({ data: globalCache.data });
@@ -394,7 +401,7 @@ const CRYPTO_SYMBOLS = [
 const cryptoCache = { data: null, ts: 0 };
 const CRYPTO_CACHE_TTL = 30 * 1000;
 
-app.get('/api/crypto', priceLimiter, async (req, res) => {
+app.get('/api/crypto', globalLimiter, async (req, res) => {
   const now = Date.now();
   if (cryptoCache.data && now - cryptoCache.ts < CRYPTO_CACHE_TTL)
     return res.json({ data: cryptoCache.data });
