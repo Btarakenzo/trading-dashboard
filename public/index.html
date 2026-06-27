@@ -477,6 +477,26 @@
     .an-ticker-row:last-child { border:none; }
     .an-empty { text-align:center; color:var(--text-muted); font-size:.75rem; padding:1rem 0; }
 
+    /* Session Countdown */
+    .session-countdown { font-size:.68rem; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .session-countdown.urgent { color:var(--yellow,#f59e0b); font-weight:700; }
+    .session-countdown.open   { color:var(--green); font-weight:700; }
+
+    /* Trade Journal */
+    .journal-fields { display:flex; flex-direction:column; gap:.45rem; border-top:1px solid var(--border); padding-top:.65rem; }
+    .journal-label  { font-size:.62rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:.4px; display:block; margin-bottom:.2rem; }
+    .journal-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:.78rem; padding:.42rem .6rem; resize:vertical; min-height:50px; outline:none; font-family:inherit; box-sizing:border-box; }
+    .journal-textarea:focus { border-color:var(--accent); }
+    .history-journal { font-size:.7rem; color:var(--text-muted); padding:.45rem 0 0; line-height:1.55; }
+    .history-journal-title { font-size:.6rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:.15rem; }
+    .history-journal-text  { color:var(--text); font-size:.72rem; }
+
+    /* Compound table */
+    .compound-table { width:100%; font-size:.72rem; border-collapse:collapse; margin-top:.5rem; }
+    .compound-table th { text-align:left; color:var(--text-muted); font-size:.62rem; text-transform:uppercase; font-weight:700; padding:.25rem .3rem; border-bottom:1px solid var(--border); }
+    .compound-table td { padding:.28rem .3rem; border-bottom:1px solid rgba(42,45,62,.4); font-variant-numeric:tabular-nums; }
+    .compound-table tr:last-child td { border:none; font-weight:800; }
+
     /* ===== RESPONSIVE MOBILE ===== */
     @media (max-width: 768px) {
       /* Header */
@@ -609,7 +629,9 @@
     <span class="kurs-change flat" id="kursChange"></span>
   </div>
   <div class="stats-update">
-    <span>Last update</span>
+    <span id="sessionCountdown" class="session-countdown"></span>
+    <span style="color:var(--border);margin:0 .3rem">|</span>
+    <span>Update</span>
     <span class="stats-update-time" id="lastUpdateTime">—</span>
   </div>
 </div>
@@ -676,6 +698,16 @@
       </div>
       <div class="summary-stats" id="summaryStats"></div>
       <div class="summary-list" id="summaryList"></div>
+      <div class="journal-fields">
+        <div>
+          <label class="journal-label">&#x1F4DD; Alasan Masuk / Setup</label>
+          <textarea class="journal-textarea" id="journalAlasan" placeholder="Tuliskan setup teknikal, sinyal, atau alasan entry..." rows="2"></textarea>
+        </div>
+        <div>
+          <label class="journal-label">&#x1F4AC; Catatan</label>
+          <textarea class="journal-textarea" id="journalCatatan" placeholder="Psikologi, emosi, hal yang perlu diingat untuk ke depan..." rows="2"></textarea>
+        </div>
+      </div>
       <div class="summary-actions">
         <button class="btn btn-secondary" onclick="tutupModal()">Tutup</button>
         <button class="btn btn-ghost" id="salinBtn" onclick="salinRingkasan()">&#x1F4CB; Salin Teks</button>
@@ -909,6 +941,33 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Section 4: Risk of Ruin -->
+        <div class="calc-section">
+          <div class="calc-section-title">&#x1F480; Risk of Ruin</div>
+          <div class="calc-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="calc-field"><label>Win Rate (%)</label><input type="number" id="rorWR" placeholder="50" min="1" max="99" oninput="calcRoR()"></div>
+            <div class="calc-field"><label>Reward:Risk</label><input type="number" id="rorRR" placeholder="2" step="0.1" min="0.1" oninput="calcRoR()"></div>
+            <div class="calc-field"><label>Risk/Trade (%)</label><input type="number" id="rorRisk" placeholder="2" step="0.5" min="0.1" oninput="calcRoR()"></div>
+          </div>
+          <div id="rorResult"></div>
+        </div>
+
+        <!-- Section 5: Compound Simulator -->
+        <div class="calc-section" style="margin-bottom:0">
+          <div class="calc-section-title">&#x1F4C8; Compound Simulator</div>
+          <div class="calc-grid">
+            <div class="calc-field"><label>Modal Awal (Rp)</label><input type="number" id="cmpModal" placeholder="10000000" oninput="calcCompound()"></div>
+            <div class="calc-field"><label>Trades/Bulan</label><input type="number" id="cmpTrades" placeholder="20" min="1" oninput="calcCompound()"></div>
+            <div class="calc-field"><label>Win Rate (%)</label><input type="number" id="cmpWR" placeholder="50" oninput="calcCompound()"></div>
+            <div class="calc-field"><label>Reward:Risk</label><input type="number" id="cmpRR" placeholder="2" step="0.1" oninput="calcCompound()"></div>
+          </div>
+          <div class="calc-field" style="margin-bottom:.5rem">
+            <label>Risk per Trade (%)</label>
+            <input type="number" id="cmpRisk" placeholder="2" step="0.5" oninput="calcCompound()">
+          </div>
+          <div id="cmpResult"></div>
         </div>
 
       </div>
@@ -2480,13 +2539,17 @@ function simpanRiwayat() {
 
   if (!items.length) { showToast('Tidak ada data', 'Isi minimal satu slot saham terlebih dahulu.', 'sl'); return; }
 
-  var entry = { id: Date.now(), date: dateStr, time: timeStr, ihsg: ihsg, market: badge, items: items };
+  var alasan  = (document.getElementById('journalAlasan')  || {}).value || '';
+  var catatan = (document.getElementById('journalCatatan') || {}).value || '';
+  var entry = { id: Date.now(), date: dateStr, time: timeStr, ihsg: ihsg, market: badge, items: items, alasan: alasan.trim(), catatan: catatan.trim() };
   var list = histLoad();
   list.unshift(entry);
   if (list.length > HIST_MAX) list = list.slice(0, HIST_MAX);
   histSave(list);
   renderHistory();
 
+  var ja = document.getElementById('journalAlasan');  if (ja) ja.value = '';
+  var jc = document.getElementById('journalCatatan'); if (jc) jc.value = '';
   var btn = document.getElementById('simpanBtn');
   if (btn) { var o=btn.innerHTML; btn.innerHTML='&#x2714; Tersimpan!'; setTimeout(function(){ btn.innerHTML=o; }, 2000); }
   showToast('Riwayat disimpan', dateStr+' '+timeStr+' — '+items.length+' saham', 'tp1');
@@ -2534,7 +2597,10 @@ function renderHistory() {
         '</div>'+
         '<button class="history-item-del" onclick="event.stopPropagation();hapusRiwayat('+entry.id+')" title="Hapus">&#x2715;</button>'+
       '</div>'+
-      '<div class="history-detail" id="hdetail-'+entry.id+'">'+detail+'</div>'+
+      '<div class="history-detail" id="hdetail-'+entry.id+'">'+detail+
+        (entry.alasan ? '<div class="history-journal"><div class="history-journal-title">Alasan Masuk</div><div class="history-journal-text">'+esc(entry.alasan)+'</div></div>' : '')+
+        (entry.catatan ? '<div class="history-journal"><div class="history-journal-title">Catatan</div><div class="history-journal-text">'+esc(entry.catatan)+'</div></div>' : '')+
+      '</div>'+
     '</div>';
   }).join('');
 }
@@ -2767,6 +2833,127 @@ document.addEventListener('keydown', function(e){
 async function logout(){
   await fetch('/api/auth/logout',{method:'POST'});
   location.href='/login';
+}
+
+// ============================================================
+// COUNTDOWN SESI BURSA
+// ============================================================
+function fmtCountdown(sec) {
+  if (sec < 0) sec = 0;
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = Math.floor(sec % 60);
+  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateCountdown() {
+  var el = document.getElementById('sessionCountdown');
+  if (!el) return;
+  var now = new Date(), wib = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  var day = wib.getDay(), h = wib.getHours(), m = wib.getMinutes(), s = wib.getSeconds();
+  var hms = h*3600 + m*60 + s;
+  var wd = day >= 1 && day <= 5, isFri = day === 5;
+
+  var pre  = 8*3600+45*60, s1   = 9*3600,        ist  = 11*3600+30*60;
+  var s2   = 13*3600+30*60, s2e = isFri?15*3600+15*60:15*3600;
+  var atce = isFri?15*3600+30*60:15*3600+15*60;
+
+  if (!wd) {
+    var daysLeft = day===0?1:2;
+    el.textContent = '🔒 Senin ' + fmtCountdown(daysLeft*86400 + pre - hms + (hms > pre ? 86400 : 0));
+    el.className = 'session-countdown';
+    return;
+  }
+
+  var label, diff, cls = 'session-countdown';
+  if      (hms < pre)  { label='⏰ Pre-open'; diff=pre-hms; if(diff<900) cls+=' urgent'; }
+  else if (hms < s1)   { label='📈 Sesi 1';   diff=s1-hms;  cls+=' urgent'; }
+  else if (hms < ist)  { label='📈 S1 tutup'; diff=ist-hms; cls+=' open'; if(diff<300) cls+=' urgent'; }
+  else if (hms < s2)   { label='⏸ Sesi 2';   diff=s2-hms;  if(diff<900) cls+=' urgent'; }
+  else if (hms < s2e)  { label='📈 S2 tutup'; diff=s2e-hms; cls+=' open'; if(diff<300) cls+=' urgent'; }
+  else if (hms < atce) { label='⏹ ATC';       diff=atce-hms; cls+=' urgent'; }
+  else {
+    var secNext = isFri ? (86400-hms)+86400+86400+pre : (86400-hms)+pre;
+    el.textContent = '🔒 Besok ' + fmtCountdown(secNext);
+    el.className = 'session-countdown';
+    return;
+  }
+  el.textContent = label + ' ' + fmtCountdown(diff);
+  el.className = cls;
+}
+setInterval(updateCountdown, 1000); updateCountdown();
+
+// ============================================================
+// KALKULATOR: RISK OF RUIN
+// ============================================================
+function calcRoR() {
+  var wr  = parseFloat(document.getElementById('rorWR').value)   / 100;
+  var rr  = parseFloat(document.getElementById('rorRR').value);
+  var rsk = parseFloat(document.getElementById('rorRisk').value) / 100;
+  var el  = document.getElementById('rorResult');
+  if (!wr || !rr || !rsk || wr >= 1 || rsk >= 1) { el.innerHTML = ''; return; }
+
+  var edge  = wr * (1 + rr) - 1;
+  var kelly = edge > 0 ? (edge / rr * 100) : 0;
+  var N     = 1 / rsk;
+  var ror   = edge > 0 ? Math.pow((1-edge)/(1+edge), N) * 100 : 100;
+  var ev10  = (wr * rr - (1 - wr)) * 10;
+
+  var rorCls   = ror < 1 ? 'ok' : ror < 10 ? '' : 'warn';
+  var edgeCls  = edge > 0 ? 'ok' : 'warn';
+  var ev10Cls  = ev10 > 0 ? 'ok' : 'warn';
+
+  el.innerHTML =
+    '<div class="calc-result" style="grid-template-columns:repeat(4,1fr);margin-top:.5rem">'+
+      '<div class="calc-res-item"><div class="calc-res-label">Risk of Ruin</div><div class="calc-res-val '+rorCls+'">'+ror.toFixed(2)+'%</div></div>'+
+      '<div class="calc-res-item"><div class="calc-res-label">Edge/Trade</div><div class="calc-res-val '+edgeCls+'">'+(edge*100).toFixed(1)+'%</div></div>'+
+      '<div class="calc-res-item"><div class="calc-res-label">Kelly %</div><div class="calc-res-val accent">'+kelly.toFixed(1)+'%</div></div>'+
+      '<div class="calc-res-item"><div class="calc-res-label">EV 10 Trade</div><div class="calc-res-val '+ev10Cls+'">'+(ev10>=0?'+':'')+ev10.toFixed(1)+'R</div></div>'+
+    '</div>'+
+    (ror >= 50 ? '<div style="font-size:.68rem;color:var(--red);margin-top:.4rem">⚠️ Risiko kehancuran tinggi — perkecil risk/trade atau tingkatkan win rate.</div>' : '');
+}
+
+// ============================================================
+// KALKULATOR: COMPOUND SIMULATOR
+// ============================================================
+function calcCompound() {
+  var modal  = parseFloat(document.getElementById('cmpModal').value);
+  var wr     = parseFloat(document.getElementById('cmpWR').value) / 100;
+  var rr     = parseFloat(document.getElementById('cmpRR').value);
+  var rsk    = parseFloat(document.getElementById('cmpRisk').value) / 100;
+  var trades = parseInt(document.getElementById('cmpTrades').value) || 20;
+  var el     = document.getElementById('cmpResult');
+  if (!modal || !wr || !rr || !rsk) { el.innerHTML = ''; return; }
+
+  var edge     = wr * (1 + rr) - 1;
+  var perTrade = 1 + rsk * edge;
+  var monthly  = Math.pow(perTrade, trades);
+
+  if (perTrade <= 0) { el.innerHTML = '<div style="color:var(--red);font-size:.72rem;margin-top:.4rem">⚠️ Kombinasi parameter menghasilkan expected value negatif.</div>'; return; }
+
+  var rows = '', cur = modal;
+  for (var i = 1; i <= 12; i++) {
+    cur *= monthly;
+    var growth = (cur - modal) / modal * 100;
+    var isPos  = growth >= 0;
+    rows += '<tr>'+
+      '<td>Bulan '+i+'</td>'+
+      '<td>'+fmtRpShort(Math.round(cur))+'</td>'+
+      '<td style="text-align:right;color:'+(isPos?'var(--green)':'var(--red)')+'">'+
+        (isPos?'+':'')+growth.toFixed(1)+'%'+
+      '</td>'+
+    '</tr>';
+  }
+  el.innerHTML =
+    '<div style="font-size:.65rem;color:var(--text-muted);margin:.45rem 0 .2rem">'+
+      'EV/trade: '+(edge*100).toFixed(1)+'% &nbsp;|&nbsp; '+
+      'Return/bulan: '+((monthly-1)*100).toFixed(1)+'%'+
+    '</div>'+
+    '<table class="compound-table">'+
+      '<thead><tr><th>Periode</th><th>Estimasi Modal</th><th style="text-align:right">Pertumbuhan</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>';
 }
 
 // ============================================================
