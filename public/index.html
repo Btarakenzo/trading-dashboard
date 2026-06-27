@@ -426,6 +426,27 @@
     .notif-badge { display:none; background:var(--red); color:#fff; font-size:.52rem; font-weight:800; border-radius:8px; padding:.05rem .28rem; margin-left:.1rem; vertical-align:top; line-height:1.4; }
     .notif-badge.show { display:inline; }
 
+    /* ===== KALKULATOR ===== */
+    .calc-section { margin-bottom:1.1rem; }
+    .calc-section-title { font-size:.75rem; font-weight:800; margin-bottom:.55rem; display:flex; align-items:center; gap:.4rem; padding-bottom:.4rem; border-bottom:1px solid var(--border); }
+    .calc-grid { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; margin-bottom:.5rem; }
+    .calc-field { display:flex; flex-direction:column; gap:.18rem; }
+    .calc-field label { font-size:.6rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:.4px; }
+    .calc-field input { font-size:.82rem; padding:.35rem .5rem; }
+    .calc-result { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:.5rem .65rem; display:grid; grid-template-columns:1fr 1fr; gap:.45rem; }
+    .calc-res-item { display:flex; flex-direction:column; gap:.1rem; }
+    .calc-res-label { font-size:.58rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:.3px; }
+    .calc-res-val { font-size:.88rem; font-weight:800; font-variant-numeric:tabular-nums; }
+    .calc-res-val.accent { color:var(--accent); }
+    .calc-res-val.ok { color:var(--green); }
+    .calc-res-val.warn { color:var(--red); }
+    .avg-header { display:grid; grid-template-columns:1fr 1fr 28px; gap:.3rem; font-size:.58rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:.4px; margin-bottom:.25rem; padding:0 .05rem; }
+    .avg-row { display:grid; grid-template-columns:1fr 1fr 28px; gap:.3rem; align-items:center; margin-bottom:.3rem; }
+    .avg-row input { font-size:.78rem; padding:.3rem .4rem; }
+    .avg-del { background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:.8rem; padding:.18rem .3rem; border-radius:4px; }
+    .avg-del:hover { color:var(--red); background:rgba(239,68,68,.1); }
+    .avg-del:disabled { opacity:0; pointer-events:none; }
+
     /* ===== RESPONSIVE MOBILE ===== */
     @media (max-width: 768px) {
       /* Header */
@@ -712,6 +733,7 @@
         <button class="drawer-tab active" id="dtab-portfolio" onclick="switchTab('portfolio')">&#x1F4BC; Portfolio <span id="portCount" style="font-size:.6rem;font-weight:400"></span></button>
         <button class="drawer-tab" id="dtab-riwayat" onclick="switchTab('riwayat')">&#x1F4D6; Riwayat <span id="histCount" style="font-size:.6rem;font-weight:400"></span></button>
         <button class="drawer-tab" id="dtab-alert" onclick="switchTab('alert')">&#x1F6A8; Alert</button>
+        <button class="drawer-tab" id="dtab-kalkulator" onclick="switchTab('kalkulator')">&#x1F9EE; Kalkulator</button>
         <button class="drawer-tab" id="dtab-akun" onclick="switchTab('akun')">&#x2699;&#xFE0F; Akun</button>
       </div>
       <button class="btn btn-ghost" style="padding:.3rem .55rem;font-size:.88rem;flex-shrink:0" onclick="closeDrawer()">&#x2715;</button>
@@ -769,6 +791,52 @@
           <button class="btn btn-secondary" style="font-size:.75rem;align-self:flex-end" onclick="alertAdd()">+ Tambah</button>
         </div>
         <div class="alert-list" id="alertList"><div class="alert-empty">Belum ada alert. Tambahkan di atas.</div></div>
+      </div>
+
+      <!-- Tab: Kalkulator -->
+      <div class="drawer-pane" id="pane-kalkulator">
+
+        <!-- Section 1: Position Sizing -->
+        <div class="calc-section">
+          <div class="calc-section-title">&#x1F4D0; Position Sizing</div>
+          <div class="calc-grid">
+            <div class="calc-field"><label>Modal Trading (Rp)</label><input type="number" id="psModal" placeholder="10000000" oninput="calcPositionSize()"></div>
+            <div class="calc-field"><label>Risk per Trade (%)</label><input type="number" id="psRisk" placeholder="2" step="0.5" min="0.1" max="100" oninput="calcPositionSize()"></div>
+            <div class="calc-field"><label>Harga Entry</label><input type="number" id="psEntry" placeholder="5000" oninput="calcPositionSize()"></div>
+            <div class="calc-field"><label>Harga Stop Loss</label><input type="number" id="psSL" placeholder="4750" oninput="calcPositionSize()"></div>
+          </div>
+          <div class="calc-result">
+            <div class="calc-res-item"><div class="calc-res-label">Jumlah Lot</div><div class="calc-res-val accent" id="psLot">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">Nilai Beli</div><div class="calc-res-val" id="psValBeli">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">Nilai Risiko</div><div class="calc-res-val warn" id="psValRisiko">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">% Modal Dipakai</div><div class="calc-res-val" id="psPctModal">—</div></div>
+          </div>
+        </div>
+
+        <!-- Section 2: Break Even / Averaging -->
+        <div class="calc-section">
+          <div class="calc-section-title">&#x2696;&#xFE0F; Break Even / Averaging</div>
+          <div class="avg-header"><span>Harga (Rp)</span><span>Lot</span><span></span></div>
+          <div id="avgRows">
+            <div class="avg-row" id="avgRow-0">
+              <input type="number" class="avg-price" placeholder="5000" oninput="calcAverage()">
+              <input type="number" class="avg-lot"   placeholder="10" min="1" oninput="calcAverage()">
+              <button class="avg-del" onclick="avgRemoveRow(0)" disabled>&#x2715;</button>
+            </div>
+          </div>
+          <button class="btn btn-ghost" style="font-size:.7rem;margin-bottom:.65rem" onclick="avgAddRow()">+ Averaging</button>
+          <div class="calc-field" style="margin-bottom:.5rem">
+            <label>Harga Jual Target (opsional)</label>
+            <input type="number" id="avgTarget" placeholder="misal: 5500" oninput="calcAverage()">
+          </div>
+          <div class="calc-result">
+            <div class="calc-res-item"><div class="calc-res-label">Harga Rata-rata</div><div class="calc-res-val accent" id="avgHarga">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">Total Lot</div><div class="calc-res-val" id="avgTotalLot">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">Total Modal</div><div class="calc-res-val" id="avgTotalModal">—</div></div>
+            <div class="calc-res-item"><div class="calc-res-label">P&amp;L di Target</div><div class="calc-res-val" id="avgPL">—</div></div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Tab: Akun -->
@@ -2154,7 +2222,7 @@ function closeDrawer() {
   document.getElementById('sideDrawer').classList.remove('open');
 }
 function switchTab(tab) {
-  ['portfolio','riwayat','alert','akun'].forEach(function(t) {
+  ['portfolio','riwayat','alert','kalkulator','akun'].forEach(function(t) {
     document.getElementById('dtab-'+t).classList.toggle('active', t===tab);
     document.getElementById('pane-'+t).classList.toggle('active', t===tab);
   });
@@ -2262,7 +2330,7 @@ function checkCustomAlerts() {
   var changed = false;
   list.forEach(function(a) {
     if (a.triggered) return;
-    var p = livePrices[a.ticker] || wlPrices[a.ticker] || portPrices[a.ticker];
+    var p = livePrices[a.ticker] || wlPrices[a.ticker] || portPrices[a.ticker] || alertPrices[a.ticker];
     var cur = p && !p.error ? p.last : null;
     if (!cur) return;
     var hit = (a.cond === 'above' && cur >= a.price) || (a.cond === 'below' && cur <= a.price);
@@ -2610,6 +2678,127 @@ async function logout(){
   location.href='/login';
 }
 
+// ============================================================
+// KALKULATOR: POSITION SIZING
+// ============================================================
+function calcPositionSize() {
+  var modal  = parseFloat(document.getElementById('psModal').value);
+  var risk   = parseFloat(document.getElementById('psRisk').value);
+  var entry  = parseFloat(document.getElementById('psEntry').value);
+  var sl     = parseFloat(document.getElementById('psSL').value);
+  var lotEl  = document.getElementById('psLot');
+  var beliEl = document.getElementById('psValBeli');
+  var rskEl  = document.getElementById('psValRisiko');
+  var pctEl  = document.getElementById('psPctModal');
+  var clear  = function(){ lotEl.textContent='—'; beliEl.textContent='—'; rskEl.textContent='—'; pctEl.textContent='—'; };
+  if (!modal || !risk || !entry || !sl || sl >= entry) { clear(); return; }
+  var riskRp     = modal * (risk / 100);
+  var riskPerLot = (entry - sl) * 100;
+  var jumlahLot  = Math.floor(riskRp / riskPerLot);
+  if (jumlahLot < 1) jumlahLot = 1;
+  var nilaiBeli   = jumlahLot * 100 * entry;
+  var nilaiRisiko = jumlahLot * riskPerLot;
+  var pctModal    = nilaiBeli / modal * 100;
+  lotEl.textContent    = jumlahLot + ' lot';
+  lotEl.className      = 'calc-res-val accent';
+  beliEl.textContent   = 'Rp ' + Math.round(nilaiBeli).toLocaleString('id-ID');
+  rskEl.textContent    = 'Rp ' + Math.round(nilaiRisiko).toLocaleString('id-ID');
+  pctEl.textContent    = pctModal.toFixed(1) + '%';
+  pctEl.className      = 'calc-res-val ' + (pctModal > 80 ? 'warn' : pctModal > 50 ? '' : 'ok');
+}
+
+// ============================================================
+// KALKULATOR: AVERAGING / BREAK EVEN
+// ============================================================
+var avgRowCount = 1;
+
+function avgAddRow() {
+  var idx       = avgRowCount++;
+  var container = document.getElementById('avgRows');
+  var row       = document.createElement('div');
+  row.className = 'avg-row';
+  row.id        = 'avgRow-' + idx;
+  row.innerHTML =
+    '<input type="number" class="avg-price" placeholder="5000" oninput="calcAverage()">' +
+    '<input type="number" class="avg-lot"   placeholder="10" min="1" oninput="calcAverage()">' +
+    '<button class="avg-del" onclick="avgRemoveRow('+idx+')">&#x2715;</button>';
+  container.appendChild(row);
+  updateAvgDelBtns();
+  calcAverage();
+}
+
+function avgRemoveRow(idx) {
+  var row = document.getElementById('avgRow-' + idx);
+  if (row) row.remove();
+  updateAvgDelBtns();
+  calcAverage();
+}
+
+function updateAvgDelBtns() {
+  var rows = document.querySelectorAll('#avgRows .avg-row');
+  rows.forEach(function(row) {
+    var btn = row.querySelector('.avg-del');
+    if (btn) btn.disabled = rows.length <= 1;
+  });
+}
+
+function calcAverage() {
+  var rows = document.querySelectorAll('#avgRows .avg-row');
+  var totalLot = 0, totalModal = 0;
+  rows.forEach(function(row) {
+    var price = parseFloat(row.querySelector('.avg-price').value);
+    var lot   = parseFloat(row.querySelector('.avg-lot').value);
+    if (price > 0 && lot > 0) { totalLot += lot; totalModal += lot * 100 * price; }
+  });
+  var avgEl   = document.getElementById('avgHarga');
+  var lotEl   = document.getElementById('avgTotalLot');
+  var modalEl = document.getElementById('avgTotalModal');
+  var plEl    = document.getElementById('avgPL');
+  if (!totalLot) {
+    avgEl.textContent='—'; lotEl.textContent='—'; modalEl.textContent='—'; plEl.textContent='—';
+    return;
+  }
+  var avgHarga = totalModal / totalLot / 100;
+  avgEl.textContent   = 'Rp ' + Math.round(avgHarga).toLocaleString('id-ID');
+  lotEl.textContent   = totalLot + ' lot';
+  modalEl.textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
+  var target = parseFloat(document.getElementById('avgTarget').value);
+  if (target > 0) {
+    var pl    = (target - avgHarga) * totalLot * 100;
+    var plPct = (target - avgHarga) / avgHarga * 100;
+    var isPos = pl >= 0;
+    plEl.textContent = (isPos?'+':'') + 'Rp ' + Math.round(Math.abs(pl)).toLocaleString('id-ID') +
+                       ' (' + (isPos?'+':'') + plPct.toFixed(2) + '%)';
+    plEl.className   = 'calc-res-val ' + (isPos ? 'ok' : 'warn');
+  } else {
+    plEl.textContent = '—'; plEl.className = 'calc-res-val';
+  }
+}
+
+// ============================================================
+// ALERT: DEDICATED PRICE FETCHER untuk ticker yang tidak ada di sumber lain
+// ============================================================
+var alertFetchTimer = null;
+async function alertFetch() {
+  var list = alertLoad().filter(function(a){ return !a.triggered; });
+  if (list.length) {
+    var needFetch = list.map(function(a){ return a.ticker; })
+      .filter(function(t,i,arr){
+        return arr.indexOf(t)===i && !livePrices[t] && !wlPrices[t] && !portPrices[t];
+      });
+    if (needFetch.length) {
+      try {
+        var res  = await fetch('/api/prices?tickers=' + needFetch.join(','));
+        var json = await res.json();
+        if (json.prices) Object.assign(alertPrices, json.prices);
+      } catch(e) {}
+    }
+    checkCustomAlerts();
+  }
+  clearTimeout(alertFetchTimer);
+  alertFetchTimer = setTimeout(alertFetch, 30000);
+}
+
 (async function(){
   // Load stock list first
   try{
@@ -2663,6 +2852,7 @@ async function logout(){
   portRender();
   portFetch();
   updateAlertBadge();
+  alertFetch();
   loadScreener(false);
   document.getElementById('footerYear').textContent='© '+new Date().getFullYear()+' KenzProject';
 })();
