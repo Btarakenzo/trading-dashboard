@@ -447,6 +447,36 @@
     .avg-del:hover { color:var(--red); background:rgba(239,68,68,.1); }
     .avg-del:disabled { opacity:0; pointer-events:none; }
 
+    /* Fib/Pivot table */
+    .fp-panels { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.5rem; }
+    .fp-panel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .fp-panel-head { font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; padding:.28rem .55rem; border-bottom:1px solid var(--border); color:var(--text-muted); }
+    .fp-row { display:flex; align-items:center; justify-content:space-between; padding:.26rem .55rem; border-bottom:1px solid rgba(42,45,62,.4); font-size:.72rem; }
+    .fp-row:last-child { border:none; }
+    .fp-row.pivot-row { background:rgba(99,102,241,.08); }
+    .fp-row.pivot-row .fp-label { color:var(--accent); font-weight:800; }
+    .fp-label { color:var(--text-muted); font-weight:600; font-size:.68rem; }
+    .fp-val { font-weight:700; font-variant-numeric:tabular-nums; }
+    .fp-val.res { color:var(--green); }
+    .fp-val.sup { color:var(--red); }
+
+    /* Portfolio Analytics */
+    .analytics-panel { display:none; margin-top:.6rem; }
+    .analytics-panel.open { display:block; }
+    .analytics-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; margin-bottom:.7rem; }
+    .an-stat { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:.4rem .5rem; }
+    .an-stat-label { font-size:.56rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:.3px; }
+    .an-stat-val { font-size:.9rem; font-weight:800; margin-top:.1rem; }
+    .an-section-title { font-size:.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin:.6rem 0 .4rem; }
+    .distrib-row { display:flex; align-items:center; gap:.5rem; margin-bottom:.28rem; }
+    .distrib-label { min-width:60px; color:var(--text-muted); font-weight:700; font-size:.68rem; }
+    .distrib-bar-wrap { flex:1; background:var(--surface2); border-radius:3px; height:7px; overflow:hidden; }
+    .distrib-bar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+    .distrib-count { min-width:28px; text-align:right; color:var(--text-muted); font-size:.62rem; }
+    .an-ticker-row { display:flex; align-items:center; justify-content:space-between; padding:.28rem 0; border-bottom:1px dashed rgba(42,45,62,.5); font-size:.72rem; }
+    .an-ticker-row:last-child { border:none; }
+    .an-empty { text-align:center; color:var(--text-muted); font-size:.75rem; padding:1rem 0; }
+
     /* ===== RESPONSIVE MOBILE ===== */
     @media (max-width: 768px) {
       /* Header */
@@ -744,8 +774,30 @@
       <div class="drawer-pane active" id="pane-portfolio">
         <div class="drawer-pane-title">
           <span>&#x1F4BC; Portfolio Tracker</span>
-          <button class="btn btn-ghost" style="font-size:.7rem" onclick="togglePortForm()">+ Tambah</button>
+          <div style="display:flex;gap:.35rem">
+            <button class="btn btn-ghost" style="font-size:.7rem" onclick="toggleAnalytics()" id="analyticsBtn">&#x1F4CA; Analitik</button>
+            <button class="btn btn-ghost" style="font-size:.7rem" onclick="togglePortForm()">+ Tambah</button>
+          </div>
         </div>
+
+        <!-- Portfolio Analytics Panel -->
+        <div class="analytics-panel" id="analyticsPanel">
+          <div class="analytics-stats" id="anStats">
+            <div class="an-stat"><div class="an-stat-label">Analisis</div><div class="an-stat-val" id="anTotal">—</div></div>
+            <div class="an-stat"><div class="an-stat-label">Win Rate</div><div class="an-stat-val ok" id="anWinRate">—</div></div>
+            <div class="an-stat"><div class="an-stat-label">Avg R:R</div><div class="an-stat-val accent" id="anAvgRR">—</div></div>
+          </div>
+          <div class="an-section-title">Distribusi Verdict</div>
+          <div id="anDistrib"></div>
+          <div class="an-section-title">Saham Terbanyak Dianalisis</div>
+          <div id="anTopTickers"></div>
+          <div class="an-section-title" id="anPortTitle" style="display:none">Performa Portfolio</div>
+          <div id="anPortPerf"></div>
+          <div style="border-top:1px solid var(--border);margin-top:.65rem;padding-top:.5rem;text-align:right">
+            <button class="btn btn-ghost" style="font-size:.68rem" onclick="toggleAnalytics()">Tutup</button>
+          </div>
+        </div>
+
         <div class="port-add-wrap" id="portAddWrap">
           <div class="port-form-row">
             <div class="port-field"><label>Ticker</label><input class="port-ticker-input" type="text" id="portTickerInp" placeholder="BBCA" autocomplete="off" oninput="this.value=this.value.toUpperCase()"></div>
@@ -834,6 +886,28 @@
             <div class="calc-res-item"><div class="calc-res-label">Total Lot</div><div class="calc-res-val" id="avgTotalLot">—</div></div>
             <div class="calc-res-item"><div class="calc-res-label">Total Modal</div><div class="calc-res-val" id="avgTotalModal">—</div></div>
             <div class="calc-res-item"><div class="calc-res-label">P&amp;L di Target</div><div class="calc-res-val" id="avgPL">—</div></div>
+          </div>
+        </div>
+
+        <!-- Section 3: Fibonacci & Pivot Point -->
+        <div class="calc-section" style="margin-bottom:0">
+          <div class="calc-section-title">&#x1F4D0; Fibonacci &amp; Pivot Point</div>
+          <div class="calc-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="calc-field"><label>High Kemarin</label><input type="number" id="fpHigh" placeholder="5250" oninput="calcFibPivot()"></div>
+            <div class="calc-field"><label>Low Kemarin</label><input type="number" id="fpLow" placeholder="5100" oninput="calcFibPivot()"></div>
+            <div class="calc-field"><label>Close Kemarin</label><input type="number" id="fpClose" placeholder="5180" oninput="calcFibPivot()"></div>
+          </div>
+          <div id="fpResult" style="display:none">
+            <div class="fp-panels">
+              <div class="fp-panel">
+                <div class="fp-panel-head">Pivot Classic</div>
+                <div id="fpPivotRows"></div>
+              </div>
+              <div class="fp-panel">
+                <div class="fp-panel-head">Fibonacci Retrace</div>
+                <div id="fpFibRows"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2773,6 +2847,157 @@ function calcAverage() {
   } else {
     plEl.textContent = '—'; plEl.className = 'calc-res-val';
   }
+}
+
+// ============================================================
+// KALKULATOR: FIBONACCI & PIVOT POINT
+// ============================================================
+function calcFibPivot() {
+  var H = parseFloat(document.getElementById('fpHigh').value);
+  var L = parseFloat(document.getElementById('fpLow').value);
+  var C = parseFloat(document.getElementById('fpClose').value);
+  var res = document.getElementById('fpResult');
+  if (!H || !L || !C || H <= L) { res.style.display='none'; return; }
+  res.style.display = 'block';
+
+  var fmt = function(n){ return Math.round(n).toLocaleString('id-ID'); };
+  var P  = (H + L + C) / 3;
+  var R1 = 2*P - L,  R2 = P + (H - L),  R3 = H + 2*(P - L);
+  var S1 = 2*P - H,  S2 = P - (H - L),  S3 = L - 2*(H - P);
+
+  var pivotRows = [
+    {label:'R3', val:R3, cls:'res'}, {label:'R2', val:R2, cls:'res'}, {label:'R1', val:R1, cls:'res'},
+    {label:'Pivot (P)', val:P, cls:'neutral', pivot:true},
+    {label:'S1', val:S1, cls:'sup'}, {label:'S2', val:S2, cls:'sup'}, {label:'S3', val:S3, cls:'sup'},
+  ];
+  document.getElementById('fpPivotRows').innerHTML = pivotRows.map(function(r){
+    return '<div class="fp-row'+(r.pivot?' pivot-row':'')+'">'+
+      '<span class="fp-label">'+r.label+'</span>'+
+      '<span class="fp-val '+r.cls+'">'+fmt(r.val)+'</span>'+
+    '</div>';
+  }).join('');
+
+  var range = H - L;
+  var fibLevels = [
+    {pct:'100%', val:H, cls:'res'}, {pct:'78.6%', val:L+0.786*range, cls:'res'},
+    {pct:'61.8%', val:L+0.618*range, cls:'res'}, {pct:'50%',  val:L+0.500*range, cls:'neutral'},
+    {pct:'38.2%', val:L+0.382*range, cls:'sup'},  {pct:'23.6%', val:L+0.236*range, cls:'sup'},
+    {pct:'0%',   val:L, cls:'sup'},
+  ];
+  document.getElementById('fpFibRows').innerHTML = fibLevels.map(function(r){
+    return '<div class="fp-row">'+
+      '<span class="fp-label">'+r.pct+'</span>'+
+      '<span class="fp-val '+r.cls+'">'+fmt(r.val)+'</span>'+
+    '</div>';
+  }).join('');
+}
+
+// ============================================================
+// PORTFOLIO ANALYTICS
+// ============================================================
+function toggleAnalytics() {
+  var panel = document.getElementById('analyticsPanel');
+  var isOpen = panel.classList.toggle('open');
+  if (isOpen) renderPortfolioAnalytics();
+}
+
+function renderPortfolioAnalytics() {
+  var hist = histLoad();
+
+  // Flatten semua items dari semua entry
+  var allItems = [];
+  hist.forEach(function(entry){ allItems = allItems.concat(entry.items || []); });
+
+  // Hitung distribusi verdict
+  var dist = {go:0, skip:0, tipis:0, slhit:0, wait:0};
+  var rrVals = [], tickerCount = {};
+  allItems.forEach(function(it) {
+    var cls = it.cls || 'wait';
+    if      (cls==='go')    { dist.go++; }
+    else if (cls==='skip')  { dist.skip++; }
+    else if (cls==='tipis') { dist.tipis++; }
+    else if (cls==='slhit') { dist.slhit++; }
+    else                    { dist.wait++; }
+    if (it.rrTp1 && it.rrTp1 > 0) rrVals.push(it.rrTp1);
+    if (it.ticker) tickerCount[it.ticker] = (tickerCount[it.ticker]||0)+1;
+  });
+
+  var total = allItems.length;
+  var winDenom = dist.go + dist.skip + dist.slhit;
+  var winRate  = winDenom ? Math.round(dist.go / winDenom * 100) : null;
+  var avgRR    = rrVals.length ? (rrVals.reduce(function(a,b){return a+b;},0) / rrVals.length) : null;
+
+  // Stats summary
+  document.getElementById('anTotal').textContent    = hist.length ? hist.length + 'x' : '—';
+  var wrEl = document.getElementById('anWinRate');
+  wrEl.textContent  = winRate !== null ? winRate + '%' : '—';
+  wrEl.className    = 'an-stat-val ' + (winRate===null ? '' : winRate>=50 ? 'ok' : 'warn');
+  document.getElementById('anAvgRR').textContent    = avgRR ? '1:'+avgRR.toFixed(2) : '—';
+
+  if (!total) {
+    document.getElementById('anDistrib').innerHTML   = '<div class="an-empty">Belum ada riwayat analisis.</div>';
+    document.getElementById('anTopTickers').innerHTML = '';
+    return;
+  }
+
+  // Distribusi bar chart
+  var distribDef = [
+    {key:'go',    label:'GO',   color:'var(--green)',   count:dist.go},
+    {key:'skip',  label:'SKIP', color:'var(--red)',     count:dist.skip},
+    {key:'tipis', label:'TIPIS',color:'var(--accent)',  count:dist.tipis},
+    {key:'slhit', label:'SL',   color:'#ef4444',        count:dist.slhit},
+    {key:'wait',  label:'WAIT', color:'var(--border)',  count:dist.wait},
+  ];
+  document.getElementById('anDistrib').innerHTML = distribDef.map(function(d){
+    if (!d.count) return '';
+    var pct = Math.round(d.count / total * 100);
+    return '<div class="distrib-row">'+
+      '<span class="distrib-label">'+d.label+'</span>'+
+      '<div class="distrib-bar-wrap"><div class="distrib-bar-fill" style="width:'+pct+'%;background:'+d.color+'"></div></div>'+
+      '<span class="distrib-count">'+d.count+'</span>'+
+    '</div>';
+  }).join('');
+
+  // Top tickers
+  var sorted = Object.keys(tickerCount).sort(function(a,b){ return tickerCount[b]-tickerCount[a]; }).slice(0,5);
+  document.getElementById('anTopTickers').innerHTML = sorted.length ? sorted.map(function(t,i){
+    return '<div class="an-ticker-row">'+
+      '<span><span style="color:var(--text-muted);font-size:.62rem;margin-right:.4rem">'+(i+1)+'.</span>'+
+      '<span style="font-weight:800;color:var(--accent)">'+esc(t)+'</span></span>'+
+      '<span style="color:var(--text-muted);font-size:.68rem">'+tickerCount[t]+'x dianalisis</span>'+
+    '</div>';
+  }).join('') : '<div class="an-empty">—</div>';
+
+  // Portfolio performance
+  var portList = portLoad();
+  var portTitleEl = document.getElementById('anPortTitle');
+  var portPerfEl  = document.getElementById('anPortPerf');
+  if (portList.length) {
+    var perfs = portList.map(function(pos){
+      var p = portPrices[pos.ticker];
+      if (!p || p.error || !p.last) return null;
+      var pl = (p.last - pos.buyPrice) / pos.buyPrice * 100;
+      return {ticker:pos.ticker, pl:pl};
+    }).filter(Boolean);
+    if (perfs.length) {
+      perfs.sort(function(a,b){return b.pl-a.pl;});
+      portTitleEl.style.display = '';
+      portPerfEl.innerHTML =
+        '<div class="an-ticker-row">'+
+          '<span style="font-size:.68rem;color:var(--text-muted)">Terbaik</span>'+
+          '<span style="font-weight:800;color:var(--green)">'+esc(perfs[0].ticker)+' '+(perfs[0].pl>=0?'+':'')+perfs[0].pl.toFixed(2)+'%</span>'+
+        '</div>'+
+        (perfs.length>1?
+          '<div class="an-ticker-row">'+
+            '<span style="font-size:.68rem;color:var(--text-muted)">Terburuk</span>'+
+            '<span style="font-weight:800;color:var(--red)">'+esc(perfs[perfs.length-1].ticker)+' '+(perfs[perfs.length-1].pl>=0?'+':'')+perfs[perfs.length-1].pl.toFixed(2)+'%</span>'+
+          '</div>':''
+        );
+      return;
+    }
+  }
+  portTitleEl.style.display = 'none';
+  portPerfEl.innerHTML = '';
 }
 
 // ============================================================
