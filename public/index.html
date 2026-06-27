@@ -2882,7 +2882,7 @@ function fmtCountdown(sec) {
   var h = Math.floor(sec / 3600);
   var m = Math.floor((sec % 3600) / 60);
   var s = Math.floor(sec % 60);
-  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  if (h >= 1) return h + 'j ' + String(m).padStart(2,'0') + 'm';
   return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 }
 
