@@ -1534,14 +1534,22 @@ async function fetchPricesFor(tickers){
       if(slots[i].mode==='auto'&&tickers.indexOf(slots[i].ticker)!==-1){
         var p=livePrices[slots[i].ticker];
         var ps=document.getElementById('priceSection-'+i);
+        var prevPrice=prevPrices[slots[i].ticker];
         if(ps) ps.innerHTML=buildPriceSection(i,slots[i],p);
+        // Animasi angka harga di card
+        if(ps&&p&&!p.error&&prevPrice!==undefined&&prevPrice!==p.last){
+          var pLiveEl=ps.querySelector('.price-live');
+          if(pLiveEl) animateNum(pLiveEl, prevPrice, p.last, 700, function(v){
+            return 'Rp '+Math.round(v).toLocaleString('id-ID');
+          });
+        }
         // Auto-suggest levels jika baru pilih saham atau slot fresh
         if(p&&!p.error&&(slots[i]._needsSuggest||(!slots[i].entryLow&&!slots[i].sl))){
           slots[i]._needsSuggest=false;
           autoSuggestLevels(i);
         }
         // Flash
-        var prev=prevPrices[slots[i].ticker];
+        var prev=prevPrice;
         if(p&&!p.error&&prev!==undefined&&p.last!==prev) flashCard(i,p.last>prev?'up':'down');
         if(p&&!p.error) prevPrices[slots[i].ticker]=p.last;
         recalcCard(i);
@@ -1608,7 +1616,11 @@ async function fetchGlobal(){
         var priceTxt=d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
         [existingItems[i], existingItems[i+idx.length]].forEach(function(el){
           if(!el) return;
-          el.querySelector('.ticker-item-price').textContent=priceTxt;
+          var priceEl=el.querySelector('.ticker-item-price');
+          var oldNum=parseFloat(priceEl.textContent.replace(/[^0-9.]/g,''));
+          animateNum(priceEl, isNaN(oldNum)?d.price:oldNum, d.price, 800, function(v){
+            return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+          });
           var pctEl=el.querySelector('.ticker-item-pct');
           pctEl.textContent=pctTxt; pctEl.className='ticker-item-pct '+dir;
         });
@@ -1651,9 +1663,16 @@ async function fetchCrypto(){
         var priceStr=d.price>=1000
           ?'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
           :'$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+        var isBig=d.price>=1000;
         [existingItems[i],existingItems[i+json.data.length]].forEach(function(el){
           if(!el) return;
-          el.querySelector('.ticker-item-price').textContent=priceStr;
+          var priceEl=el.querySelector('.ticker-item-price');
+          var oldNum=parseFloat(priceEl.textContent.replace(/[^0-9.]/g,''));
+          animateNum(priceEl, isNaN(oldNum)?d.price:oldNum, d.price, 800, function(v){
+            return isBig
+              ?'$'+Math.round(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})
+              :'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+          });
           var pctEl=el.querySelector('.ticker-item-pct');
           pctEl.textContent=pctTxt; pctEl.className='ticker-item-pct '+dir;
         });
@@ -2833,6 +2852,26 @@ document.addEventListener('keydown', function(e){
 async function logout(){
   await fetch('/api/auth/logout',{method:'POST'});
   location.href='/login';
+}
+
+// ============================================================
+// ANIMASI ANGKA BERPUTAR
+// ============================================================
+var _animRafs = new Map();
+
+function animateNum(el, from, to, dur, fmtFn) {
+  if (_animRafs.has(el)) cancelAnimationFrame(_animRafs.get(el));
+  if (isNaN(from) || isNaN(to) || from === to) { el.textContent = fmtFn(to); return; }
+  var start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    var t = Math.min((ts - start) / dur, 1);
+    var eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmtFn(from + (to - from) * eased);
+    if (t < 1) _animRafs.set(el, requestAnimationFrame(step));
+    else { el.textContent = fmtFn(to); _animRafs.delete(el); }
+  }
+  _animRafs.set(el, requestAnimationFrame(step));
 }
 
 // ============================================================
