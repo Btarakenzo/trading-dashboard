@@ -2184,6 +2184,22 @@ function portRemove(id) {
   portRender();
 }
 
+function fmtRpShort(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  var sign = n < 0 ? '-' : '';
+  var abs  = Math.abs(n);
+  if (abs >= 1e9) return sign + 'Rp ' + (abs/1e9).toFixed(2) + 'M';
+  if (abs >= 1e6) return sign + 'Rp ' + (abs/1e6).toFixed(1) + 'jt';
+  return sign + 'Rp ' + Math.round(abs).toLocaleString('id-ID');
+}
+
+function fmtTgl(dateStr) {
+  if (!dateStr) return '';
+  var parts = dateStr.split('-');
+  if (parts.length === 3) return parts[2] + '/' + parts[1];
+  return dateStr;
+}
+
 function portRender() {
   var list = portLoad();
   var body = document.getElementById('portfolioBody');
@@ -2207,7 +2223,7 @@ function portRender() {
     var pl = nowVal ? nowVal - cost : null;
     var plPct = pl ? (pl / cost * 100) : null;
     var dir = pl === null ? '' : pl >= 0 ? 'up' : 'down';
-    var plStr = pl !== null ? (pl >= 0 ? '+' : '') + 'Rp ' + Math.round(pl).toLocaleString('id-ID') : '—';
+    var plStr = pl !== null ? (pl >= 0 ? '+' : '') + fmtRpShort(Math.round(pl)) : '—';
     var plPctStr = plPct !== null ? (plPct >= 0 ? '+' : '') + plPct.toFixed(2) + '%' : '';
     totalCost += cost;
     if (nowVal) totalNow += nowVal;
@@ -2215,18 +2231,17 @@ function portRender() {
       '<td><div class="port-ticker">'+esc(pos.ticker)+'</div><div class="port-name">'+esc(stock.n)+'</div></td>'+
       '<td style="font-variant-numeric:tabular-nums">'+pos.buyPrice.toLocaleString('id-ID')+'</td>'+
       '<td style="font-variant-numeric:tabular-nums">'+(curPrice ? curPrice.toLocaleString('id-ID') : '<span style="color:var(--text-muted)">—</span>')+'</td>'+
-      '<td>'+pos.lot+' lot</td>'+
-      '<td style="font-variant-numeric:tabular-nums;color:var(--text-muted)">Rp '+Math.round(cost).toLocaleString('id-ID')+'</td>'+
+      '<td style="white-space:nowrap">'+pos.lot+' lot</td>'+
       '<td><div class="port-pl '+dir+'">'+plStr+'</div>'+
         (plPctStr ? '<span class="port-badge '+dir+'">'+plPctStr+'</span>' : '')+
       '</td>'+
-      '<td>'+(pos.date ? '<span style="font-size:.63rem;color:var(--text-muted)">'+pos.date+'</span>' : '')+'</td>'+
+      '<td><span style="font-size:.62rem;color:var(--text-muted)">'+fmtTgl(pos.date)+'</span></td>'+
       '<td><button class="port-del" onclick="portRemove('+pos.id+')">&#x2715;</button></td>'+
     '</tr>';
   }).join('');
 
   body.innerHTML = '<table class="portfolio-table">'+
-    '<thead><tr><th>Saham</th><th>Beli</th><th>Sekarang</th><th>Lot</th><th>Nilai Beli</th><th>P&amp;L</th><th>Tgl</th><th></th></tr></thead>'+
+    '<thead><tr><th>Saham</th><th>Beli</th><th>Skrg</th><th>Lot</th><th>P&amp;L</th><th>Tgl</th><th></th></tr></thead>'+
     '<tbody>'+rows+'</tbody>'+
   '</table>';
 
@@ -2236,11 +2251,13 @@ function portRender() {
   var plDir = totalPL >= 0 ? 'up' : 'down';
   if (sumEl) {
     sumEl.style.display = 'grid';
-    document.getElementById('portValCost').textContent = 'Rp ' + Math.round(totalCost).toLocaleString('id-ID');
-    document.getElementById('portValNow').textContent = totalNow ? 'Rp ' + Math.round(totalNow).toLocaleString('id-ID') : '—';
+    document.getElementById('portValCost').textContent = fmtRpShort(Math.round(totalCost));
+    document.getElementById('portValNow').textContent  = totalNow ? fmtRpShort(Math.round(totalNow)) : '—';
     var plEl = document.getElementById('portValPL');
-    plEl.className = 'port-stat-val ' + (totalNow ? plDir : '');
-    plEl.textContent = totalNow ? (totalPL >= 0 ? '+' : '') + 'Rp ' + Math.round(totalPL).toLocaleString('id-ID') + ' (' + (totalPLPct >= 0 ? '+' : '') + totalPLPct.toFixed(2) + '%)' : '—';
+    plEl.className   = 'port-stat-val ' + (totalNow ? plDir : '');
+    plEl.textContent = totalNow
+      ? (totalPL >= 0 ? '+' : '') + fmtRpShort(Math.round(totalPL)) + ' (' + (totalPLPct >= 0 ? '+' : '') + totalPLPct.toFixed(2) + '%)'
+      : '—';
   }
 }
 
