@@ -2900,7 +2900,7 @@ function updateCountdown() {
 
   if (!wd) {
     var daysLeft = day===0?1:2;
-    el.textContent = '🔒 Senin ' + fmtCountdown(daysLeft*86400 + pre - hms + (hms > pre ? 86400 : 0));
+    el.textContent = '🔒 Senin ' + fmtCountdown(daysLeft*86400 + pre - hms);
     el.className = 'session-countdown';
     return;
   }
@@ -2936,7 +2936,7 @@ function calcRoR() {
   var edge  = wr * (1 + rr) - 1;
   var kelly = edge > 0 ? (edge / rr * 100) : 0;
   var N     = 1 / rsk;
-  var ror   = edge > 0 ? Math.pow((1-edge)/(1+edge), N) * 100 : 100;
+  var ror   = edge <= 0 ? 100 : edge >= 1 ? 0 : Math.pow((1-edge)/(1+edge), N) * 100;
   var ev10  = (wr * rr - (1 - wr)) * 10;
 
   var rorCls   = ror < 1 ? 'ok' : ror < 10 ? '' : 'warn';
